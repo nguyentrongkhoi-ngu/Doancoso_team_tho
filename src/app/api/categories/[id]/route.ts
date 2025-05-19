@@ -7,8 +7,11 @@ import { z } from "zod";
 // Schema xác thực danh mục
 const categoryUpdateSchema = z.object({
   name: z.string().min(1, "Tên danh mục là bắt buộc"),
+  description: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
+  parentId: z.string().optional().nullable(),
   sortOrder: z.number().optional(),
+  isFeatured: z.boolean().optional(),
 });
 
 // Lấy thông tin danh mục theo ID
@@ -64,29 +67,11 @@ export async function PUT(
     }
     
     const { id } = params;
-    let data;
-    
-    try {
-      data = await req.json();
-      console.log('Dữ liệu PUT nhận được:', JSON.stringify(data));
-    } catch (parseError) {
-      console.error('Lỗi khi parse request body:', parseError);
-      return NextResponse.json(
-        { error: "Lỗi định dạng dữ liệu gửi lên" },
-        { status: 400 }
-      );
-    }
+    const data = await req.json();
+    console.log('Dữ liệu cập nhật:', data);
     
     // Xác thực dữ liệu
-    const updateSchema = z.object({
-      name: z.string().min(1, "Tên danh mục là bắt buộc"),
-      imageUrl: z.string().optional().nullable(),
-      sortOrder: z.number().optional().nullable(),
-      parentId: z.string().optional().nullable(),
-      description: z.string().optional().nullable(),
-    });
-    
-    const validationResult = updateSchema.safeParse(data);
+    const validationResult = categoryUpdateSchema.safeParse(data);
     if (!validationResult.success) {
       console.log('Lỗi validation:', validationResult.error.errors);
       return NextResponse.json(
@@ -95,162 +80,41 @@ export async function PUT(
       );
     }
     
-    // Dữ liệu đã được xác thực
-    const validatedData = validationResult.data;
+    // Kiểm tra xem danh mục có tồn tại không
+    const existingCategory = await prisma.category.findUnique({
+      where: { id },
+    });
     
-    try {
-      // Kiểm tra xem danh mục có tồn tại không
-      const existingCategory = await prisma.category.findUnique({
-        where: { id },
-        include: {
-          subCategories: {
-            select: { id: true },
-          },
-        },
-      });
-      
-      console.log('Category tồn tại:', existingCategory ? 'yes' : 'no');
-      
-      if (!existingCategory) {
-        return NextResponse.json(
-          { error: "Danh mục không tồn tại" },
-          { status: 404 }
-        );
-      }
-      
-      // Kiểm tra xem tên đã tồn tại ở danh mục khác chưa
-      if (validatedData.name !== existingCategory.name) {
-        const duplicateName = await prisma.category.findUnique({
-          where: { name: validatedData.name },
-        });
-        
-        if (duplicateName) {
-          console.log('Tên danh mục đã tồn tại:', validatedData.name);
-          return NextResponse.json(
-            { error: "Tên danh mục đã tồn tại" },
-            { status: 400 }
-          );
-        }
-      }
-      
-      // Kiểm tra xem parentId có hợp lệ không
-      if (validatedData.parentId) {
-        // Không thể đặt chính nó làm cha
-        if (validatedData.parentId === id) {
-          return NextResponse.json(
-            { error: "Không thể đặt danh mục làm cha của chính nó" },
-            { status: 400 }
-          );
-        }
-        
-        // Kiểm tra xem danh mục cha có tồn tại không
-        const parentCategory = await prisma.category.findUnique({
-          where: { id: validatedData.parentId },
-        });
-        
-        if (!parentCategory) {
-          return NextResponse.json(
-            { error: "Danh mục cha không tồn tại" },
-            { status: 400 }
-          );
-        }
-        
-        // Kiểm tra xem có tạo thành vòng lặp không
-        // Nếu A là cha của B, B là cha của C, thì C không thể là cha của A
-        const checkCycleInHierarchy = async (
-          childId: string,
-          potentialParentId: string
-        ): Promise<boolean> => {
-          // Nếu trùng ID thì tạo thành vòng lặp
-          if (childId === potentialParentId) return true;
-          
-          // Lấy tất cả danh mục con của childId
-          const subCategories = await prisma.category.findMany({
-            where: { parentId: childId },
-            select: { id: true },
-          });
-          
-          // Kiểm tra từng danh mục con
-          for (const subCategory of subCategories) {
-            const hasCycle = await checkCycleInHierarchy(
-              subCategory.id,
-              potentialParentId
-            );
-            if (hasCycle) return true;
-          }
-          
-          return false;
-        };
-        
-        try {
-          const hasCycle = await checkCycleInHierarchy(validatedData.parentId, id);
-          if (hasCycle) {
-            return NextResponse.json(
-              { error: "Không thể tạo cấu trúc danh mục vòng lặp" },
-              { status: 400 }
-            );
-          }
-        } catch (cycleError) {
-          console.error("Lỗi khi kiểm tra chu trình:", cycleError);
-          return NextResponse.json(
-            { error: "Lỗi khi kiểm tra cấu trúc danh mục" },
-            { status: 500 }
-          );
-        }
-      }
-      
-      // Xử lý giá trị sortOrder
-      let sortOrder: number | undefined;
-      if (validatedData.sortOrder !== undefined && validatedData.sortOrder !== null) {
-        const sortOrderValue = Number(validatedData.sortOrder);
-        if (isNaN(sortOrderValue)) {
-          return NextResponse.json(
-            { error: "Thứ tự hiển thị (sortOrder) phải là một số" },
-            { status: 400 }
-          );
-        }
-        sortOrder = sortOrderValue;
-      } else {
-        sortOrder = existingCategory.sortOrder;
-      }
-      
-      // Chuẩn bị dữ liệu để cập nhật
-      const updateData = {
-        name: validatedData.name,
-        imageUrl: validatedData.imageUrl,
-        description: validatedData.description,
-        parentId: validatedData.parentId,
-        sortOrder: sortOrder,
-      };
-      
-      console.log('Dữ liệu sẽ cập nhật:', JSON.stringify(updateData));
-      
-      // Cập nhật danh mục
-      const updatedCategory = await prisma.category.update({
-        where: { id },
-        data: updateData,
-      });
-      
-      console.log('Đã cập nhật danh mục:', updatedCategory);
-      
-      return NextResponse.json({
-        category: updatedCategory,
-        message: "Đã cập nhật danh mục thành công"
-      });
-    } catch (dbError) {
-      console.error("Lỗi database:", dbError);
+    if (!existingCategory) {
       return NextResponse.json(
-        { error: "Lỗi cơ sở dữ liệu khi cập nhật danh mục" },
-        { status: 500 }
+        { error: "Danh mục không tồn tại" },
+        { status: 404 }
       );
     }
+    
+    // Cập nhật danh mục
+    const updatedCategory = await prisma.category.update({
+      where: { id },
+      data: {
+        name: data.name,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        parentId: data.parentId === "none" ? null : data.parentId,
+        sortOrder: data.sortOrder,
+        isFeatured: data.isFeatured,
+      },
+    });
+    
+    console.log('Danh mục sau khi cập nhật:', updatedCategory);
+    
+    return NextResponse.json({
+      category: updatedCategory,
+      message: "Đã cập nhật danh mục thành công"
+    });
   } catch (error) {
     console.error("Lỗi khi cập nhật danh mục:", error);
     return NextResponse.json(
-      { 
-        error: "Đã xảy ra lỗi khi cập nhật danh mục",
-        details: error instanceof Error ? error.message : "Unknown error" 
-      },
+      { error: "Đã xảy ra lỗi khi cập nhật danh mục" },
       { status: 500 }
     );
   }

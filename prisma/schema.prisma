@@ -118,6 +118,7 @@ model Category {
   sortOrder      Int        @default(0)
   description    String?    @db.Text
   parentId       String?
+  isFeatured     Boolean    @default(false)
   parentCategory Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subCategories  Category[] @relation("CategoryToCategory")
   products       Product[]

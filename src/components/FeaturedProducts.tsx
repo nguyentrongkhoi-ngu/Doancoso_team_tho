@@ -24,7 +24,7 @@ export default function FeaturedProducts() {
     const fetchFeaturedProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/products?featured=true&limit=4');
+        const response = await fetch('/api/products?featured=true');
         
         if (!response.ok) {
           throw new Error('Failed to fetch featured products');

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { fetchProvinces, fetchDistrictsForProvince } from '@/lib/administrativeData';
 
 interface Address {
   id: string;
@@ -38,6 +39,11 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
     isDefault: false
   });
   
+  // State cho danh sách tỉnh/thành phố và quận/huyện
+  const [provinces, setProvinces] = useState<{ code: string; name: string }[]>([]);
+  const [districts, setDistricts] = useState<{ code: string; name: string }[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  
   const fetchAddresses = async () => {
     try {
       setIsLoading(true);
@@ -60,6 +66,32 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
   useEffect(() => {
     fetchAddresses();
   }, []);
+  
+  // Load provinces khi mở form
+  useEffect(() => {
+    if (showAddForm || showEditForm) {
+      (async () => {
+        setLoadingLocations(true);
+        const provincesData = await fetchProvinces();
+        setProvinces(provincesData);
+        setLoadingLocations(false);
+      })();
+    }
+  }, [showAddForm, showEditForm]);
+
+  // Load districts khi chọn tỉnh/thành phố
+  useEffect(() => {
+    const selectedProvince = provinces.find(p => p.name === formData.city);
+    if (selectedProvince) {
+      setLoadingLocations(true);
+      fetchDistrictsForProvince(selectedProvince.code).then((districtsData) => {
+        setDistricts(districtsData);
+        setLoadingLocations(false);
+      });
+    } else {
+      setDistricts([]);
+    }
+  }, [formData.city, provinces]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -273,27 +305,37 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
                   <label className="label">
                     <span className="label-text">Tỉnh/Thành phố</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <select
                     name="city"
                     value={formData.city}
                     onChange={handleInputChange}
-                    className="input input-bordered" 
+                    className="select select-bordered"
                     required
-                  />
+                  >
+                    <option value="" disabled>Chọn Tỉnh/Thành phố</option>
+                    {provinces.map((province) => (
+                      <option key={province.code} value={province.name}>{province.name}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">Quận/Huyện</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <select
                     name="state"
                     value={formData.state}
                     onChange={handleInputChange}
-                    className="input input-bordered" 
-                  />
+                    className="select select-bordered"
+                    required={!!formData.city}
+                    disabled={!formData.city || loadingLocations}
+                  >
+                    <option value="" disabled>Chọn Quận/Huyện</option>
+                    {districts.map((district) => (
+                      <option key={district.code} value={district.name}>{district.name}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="form-control">
@@ -414,27 +456,37 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
                   <label className="label">
                     <span className="label-text">Tỉnh/Thành phố</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <select
                     name="city"
                     value={formData.city}
                     onChange={handleInputChange}
-                    className="input input-bordered" 
+                    className="select select-bordered"
                     required
-                  />
+                  >
+                    <option value="" disabled>Chọn Tỉnh/Thành phố</option>
+                    {provinces.map((province) => (
+                      <option key={province.code} value={province.name}>{province.name}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">Quận/Huyện</span>
                   </label>
-                  <input 
-                    type="text" 
+                  <select
                     name="state"
                     value={formData.state}
                     onChange={handleInputChange}
-                    className="input input-bordered" 
-                  />
+                    className="select select-bordered"
+                    required={!!formData.city}
+                    disabled={!formData.city || loadingLocations}
+                  >
+                    <option value="" disabled>Chọn Quận/Huyện</option>
+                    {districts.map((district) => (
+                      <option key={district.code} value={district.name}>{district.name}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div className="form-control">

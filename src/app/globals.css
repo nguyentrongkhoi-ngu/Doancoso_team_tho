@@ -286,40 +286,38 @@ p, ul, ol {
 .testimonial-shine::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
   background: linear-gradient(
     to right,
     rgba(255, 255, 255, 0) 0%,
     rgba(255, 255, 255, 0.3) 50%,
     rgba(255, 255, 255, 0) 100%
   );
-  transform: skewX(-25deg);
-  animation: shine 8s infinite;
+  transform: rotate(30deg);
+  animation: shine 6s infinite linear;
+  pointer-events: none;
 }
 
 @keyframes shine {
-  0% {
-    left: -100%;
+  from {
+    transform: translateX(-100%) rotate(30deg);
   }
-  20% {
-    left: 100%;
-  }
-  100% {
-    left: 100%;
+  to {
+    transform: translateX(100%) rotate(30deg);
   }
 }
 
 /* Subtle glow effect for testimonial avatars */
 .avatar-glow {
-  box-shadow: 0 0 15px rgba(79, 70, 229, 0.4);
-  transition: box-shadow 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .avatar-glow:hover {
-  box-shadow: 0 0 25px rgba(79, 70, 229, 0.7);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(79, 70, 229, 0.6);
 }
 
 /* Quote icon animation */
@@ -437,13 +435,56 @@ p, ul, ol {
 }
 
 .testimonial-bg-animate {
-  background: linear-gradient(-45deg, #EEF2FF, #F5F3FF, #EFF6FF, #F3F4F6);
+  background: linear-gradient(-45deg, #4f46e5, #ec4899, #8b5cf6, #3b82f6);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
 }
 
 .dark .testimonial-bg-animate {
-  background: linear-gradient(-45deg, #1E1B4B, #2E1065, #1E3A8A, #111827);
+  background: linear-gradient(-45deg, #4338ca, #be185d, #7c3aed, #1d4ed8);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
+}
+
+/* Additional effects for the homepage */
+.shadow-soft-md {
+  box-shadow: 0 4px 7px -1px rgba(0, 0, 0, 0.11), 0 2px 4px -1px rgba(0, 0, 0, 0.07);
+}
+
+.shadow-soft-xl {
+  box-shadow: 0 20px 27px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Banner image overlay */
+.banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+}
+
+/* Card hover effects */
+.card-hover-rise {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover-rise:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 22px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+
+/* Button hover effects */
+.btn-hover-expand {
+  transition: all 0.3s ease;
+}
+
+.btn-hover-expand:hover {
+  padding-left: 1.75rem;
+  padding-right: 1.75rem;
+  transform: translateY(-2px);
 }
