@@ -22,6 +22,7 @@ const categorySchema = z.object({
   sortOrder: z.number().optional(),
   parentId: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  isFeatured: z.boolean().optional(),
 });
 
 // Lấy tất cả danh mục
@@ -32,8 +33,10 @@ export async function GET(req: NextRequest) {
     // Kiểm tra xem có yêu cầu bao gồm cấu trúc không
     const { searchParams } = new URL(req.url);
     const includeStructure = searchParams.get('includeStructure') === 'true';
+    const featured = searchParams.get('featured') === 'true';
     
     console.log('Include structure:', includeStructure);
+    console.log('Featured only:', featured);
     
     try {
       let categories;
@@ -41,6 +44,9 @@ export async function GET(req: NextRequest) {
       if (includeStructure) {
         // Lấy danh mục với cấu trúc đầy đủ
         categories = await prisma.category.findMany({
+          where: featured ? {
+            isFeatured: true
+          } : undefined,
           orderBy: {
             sortOrder: "asc",
           },
@@ -60,12 +66,32 @@ export async function GET(req: NextRequest) {
           },
         });
       } else {
-        // Lấy danh mục đơn giản
+        // Lấy danh mục đơn giản, nhưng vẫn bao gồm số lượng sản phẩm cho danh mục nổi bật
         categories = await prisma.category.findMany({
+          where: featured ? {
+            isFeatured: true
+          } : undefined,
           orderBy: {
             sortOrder: "asc",
           },
+          ...(featured ? {
+            include: {
+              _count: {
+                select: {
+                  products: true
+                }
+              }
+            }
+          } : {})
         });
+        
+        // Thêm productCount vào mỗi danh mục nếu là featured
+        if (featured) {
+          categories = categories.map(category => ({
+            ...category,
+            productCount: category._count?.products || 0
+          }));
+        }
       }
       
       console.log('Danh sách categories từ DB:', categories.length);
@@ -75,14 +101,34 @@ export async function GET(req: NextRequest) {
     } catch (dbError) {
       console.error("Database error:", dbError);
       // Return mock categories as fallback
-      return NextResponse.json(mockCategories);
+      if (featured) {
+        // Trả về 3-4 danh mục mẫu nổi bật nếu lọc theo featured với hình ảnh và mô tả
+        const featuredMockCategories = mockCategories.slice(0, 4).map(cat => ({
+          ...cat,
+          imageUrl: `https://via.placeholder.com/800x600?text=${encodeURIComponent(cat.name)}`,
+          description: `Bộ sưu tập ${cat.name} mới nhất và tốt nhất`,
+          productCount: Math.floor(Math.random() * 100) + 20
+        }));
+        return NextResponse.json(featuredMockCategories);
+      } else {
+        return NextResponse.json(mockCategories);
+      }
     }
   } catch (error) {
     console.error("Lỗi khi lấy danh mục:", error);
-    return NextResponse.json(
-      mockCategories,
-      { status: 200 } // Return mock data even on error
-    );
+    // Return mock categories as fallback
+    if (searchParams.get('featured') === 'true') {
+      // Trả về 3-4 danh mục mẫu nổi bật nếu lọc theo featured với hình ảnh và mô tả
+      const featuredMockCategories = mockCategories.slice(0, 4).map(cat => ({
+        ...cat,
+        imageUrl: `https://via.placeholder.com/800x600?text=${encodeURIComponent(cat.name)}`,
+        description: `Bộ sưu tập ${cat.name} mới nhất và tốt nhất`,
+        productCount: Math.floor(Math.random() * 100) + 20
+      }));
+      return NextResponse.json(featuredMockCategories, { status: 200 });
+    } else {
+      return NextResponse.json(mockCategories, { status: 200 });
+    }
   }
 }
 
@@ -190,6 +236,7 @@ export async function POST(req: NextRequest) {
         sortOrder: sortOrder,
         parentId: validatedData.parentId || null,
         description: validatedData.description || null,
+        isFeatured: validatedData.isFeatured || false,
       };
       
       console.log('Dữ liệu tạo mới:', JSON.stringify(createData));
@@ -259,6 +306,9 @@ export async function PUT(req: NextRequest) {
       name: z.string().min(1, "Tên danh mục là bắt buộc"),
       imageUrl: z.string().optional().nullable(),
       sortOrder: z.number().optional(),
+      parentId: z.string().optional().nullable(),
+      description: z.string().optional().nullable(),
+      isFeatured: z.boolean().optional(),
     });
     
     const validationResult = updateSchema.safeParse(data);
@@ -302,6 +352,9 @@ export async function PUT(req: NextRequest) {
         name: data.name,
         imageUrl: data.imageUrl,
         sortOrder: data.sortOrder || existingCategory.sortOrder,
+        parentId: data.parentId === "none" ? null : data.parentId,
+        description: data.description,
+        isFeatured: data.isFeatured !== undefined ? data.isFeatured : existingCategory.isFeatured,
       },
     });
     

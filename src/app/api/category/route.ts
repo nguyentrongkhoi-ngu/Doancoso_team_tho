@@ -35,6 +35,7 @@ const categorySchema = z.object({
   imageUrl: z.string().optional().nullable(),
   parentId: z.string().optional().nullable(),
   sortOrder: z.number().optional(),
+  isFeatured: z.boolean().optional().default(false)
 });
 
 // Hàm khởi tạo dữ liệu mẫu
@@ -285,6 +286,7 @@ export async function POST(req: NextRequest) {
         imageUrl: data.imageUrl || null,
         parentId: data.parentId || null,
         sortOrder: data.sortOrder || nextSortOrder,
+        isFeatured: data.isFeatured || false
       },
     });
     
