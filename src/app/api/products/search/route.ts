@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { ProductSuggestion } from '@/types/chat';
 
 // Cache for search results to improve performance
 const searchCache = new Map();
@@ -15,112 +16,113 @@ function generateCacheKey(params) {
 }
 
 // Mock data for fallback if database connection fails
-const mockProducts = [
+const mockProducts: ProductSuggestion[] = [
   {
-    id: '1',
-    name: 'iPhone 15 Pro Max',
-    description: 'Smartphone cao cấp từ Apple với chip A17 Pro, màn hình Super Retina XDR 6.7 inch và hệ thống camera chuyên nghiệp.',
-    price: 34990000,
-    stock: 50,
-    imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484428d1',
-    categoryId: 'smartphone',
-    category: {
-      id: 'smartphone',
-      name: 'Điện thoại'
-    }
+    id: 'p1',
+    name: 'Điện thoại iPhone 14 Pro Max',
+    price: 27990000,
+    currency: 'VND',
+    imageUrl: '/images/products/iphone-14-pro-max.jpg',
+    description: 'iPhone 14 Pro Max với chip A16 Bionic mạnh mẽ, camera 48MP, màn hình Dynamic Island',
+    url: '/products/iphone-14-pro-max',
+    discount: 5,
+    rating: 4.9,
+    inStock: true
   },
   {
-    id: '2',
-    name: 'Samsung Galaxy S24 Ultra',
-    description: 'Flagship của Samsung với bút S-Pen tích hợp, màn hình Dynamic AMOLED 2X và khả năng zoom quang học 10x.',
-    price: 31990000,
-    stock: 45,
-    imageUrl: 'https://images.unsplash.com/photo-1707412911484-7b0440f2830a',
-    categoryId: 'smartphone',
-    category: {
-      id: 'smartphone',
-      name: 'Điện thoại'
-    }
+    id: 'p2',
+    name: 'Laptop MacBook Air M2',
+    price: 28990000,
+    currency: 'VND',
+    imageUrl: '/images/products/macbook-air-m2.jpg',
+    description: 'MacBook Air M2 mỏng nhẹ, hiệu năng mạnh mẽ, thời lượng pin cả ngày',
+    url: '/products/macbook-air-m2',
+    discount: 10,
+    rating: 4.8,
+    inStock: true
   },
   {
-    id: '3',
-    name: 'MacBook Pro 16 inch M3 Max',
-    description: 'Laptop chuyên dụng cho sáng tạo nội dung với chip M3 Max, màn hình Liquid Retina XDR và thời lượng pin lên đến 22 giờ.',
-    price: 75990000,
-    stock: 20,
-    imageUrl: 'https://images.unsplash.com/photo-1628556270448-4d4e4769a38c',
-    categoryId: 'laptop',
-    category: {
-      id: 'laptop',
-      name: 'Laptop'
-    }
+    id: 'p3',
+    name: 'Samsung Galaxy S23 Ultra',
+    price: 25990000,
+    currency: 'VND',
+    imageUrl: '/images/products/samsung-s23-ultra.jpg',
+    description: 'Samsung Galaxy S23 Ultra với camera 200MP, bút S-Pen tích hợp, pin 5000mAh',
+    url: '/products/samsung-s23-ultra',
+    rating: 4.7,
+    inStock: true
   },
   {
-    id: '4',
-    name: 'Dell XPS 15',
-    description: 'Laptop cao cấp với màn hình OLED 4K, chip Intel Core i9 và card đồ họa NVIDIA RTX 4070.',
-    price: 52990000,
-    stock: 15,
-    imageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45',
-    categoryId: 'laptop',
-    category: {
-      id: 'laptop',
-      name: 'Laptop'
-    }
+    id: 'p4',
+    name: 'Tai nghe AirPods Pro 2',
+    price: 6290000,
+    currency: 'VND',
+    imageUrl: '/images/products/airpods-pro-2.jpg',
+    description: 'AirPods Pro 2 với khả năng chống ồn chủ động, âm thanh không gian, chống nước IPX4',
+    url: '/products/airpods-pro-2',
+    discount: 15,
+    rating: 4.8,
+    inStock: true
   },
   {
-    id: '5',
-    name: 'Xiaomi 14 Ultra',
-    description: 'Smartphone cao cấp với hệ thống camera Leica, màn hình AMOLED 120Hz và pin lớn.',
-    price: 19990000,
-    stock: 30,
-    imageUrl: 'https://images.unsplash.com/photo-1671920090611-9a40303b52cb',
-    categoryId: 'smartphone',
-    category: {
-      id: 'smartphone',
-      name: 'Điện thoại'
-    }
+    id: 'p5',
+    name: 'iPad Air 5',
+    price: 15990000,
+    currency: 'VND',
+    imageUrl: '/images/products/ipad-air-5.jpg',
+    description: 'iPad Air 5 với chip M1, màn hình Liquid Retina 10.9 inch, hỗ trợ Apple Pencil 2',
+    url: '/products/ipad-air-5',
+    rating: 4.7,
+    inStock: false
   },
   {
-    id: '6',
-    name: 'iPad Pro M2',
-    description: 'Máy tính bảng mạnh mẽ với chip M2, màn hình Liquid Retina XDR và Apple Pencil 2.',
-    price: 23990000,
-    stock: 30,
-    imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0',
-    categoryId: 'tablet',
-    category: {
-      id: 'tablet',
-      name: 'Máy tính bảng'
-    }
-  },
-  {
-    id: '7',
-    name: 'Sony WH-1000XM5',
-    description: 'Tai nghe chụp tai chống ồn hàng đầu với chất lượng âm thanh vượt trội và thời lượng pin dài.',
-    price: 8990000,
-    stock: 55,
-    imageUrl: 'https://images.unsplash.com/photo-1618066346137-23e4135702ab',
-    categoryId: 'audio',
-    category: {
-      id: 'audio',
-      name: 'Âm thanh'
-    }
-  },
-  {
-    id: '8',
-    name: 'Apple Watch Series 9',
-    description: 'Đồng hồ thông minh cao cấp với tính năng theo dõi sức khỏe và tích hợp với hệ sinh thái Apple.',
+    id: 'p6',
+    name: 'Apple Watch Series 8',
     price: 10990000,
-    stock: 45,
-    imageUrl: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12',
-    categoryId: 'wearable',
-    category: {
-      id: 'wearable',
-      name: 'Thiết bị đeo'
-    }
+    currency: 'VND',
+    imageUrl: '/images/products/apple-watch-series-8.jpg',
+    description: 'Apple Watch Series 8 với tính năng đo nhiệt độ, phát hiện va chạm, theo dõi sức khỏe nâng cao',
+    url: '/products/apple-watch-series-8',
+    discount: 8,
+    rating: 4.6,
+    inStock: true
+  },
+  {
+    id: 'p7',
+    name: 'Samsung Galaxy Tab S8 Ultra',
+    price: 24990000,
+    currency: 'VND',
+    imageUrl: '/images/products/samsung-tab-s8-ultra.jpg',
+    description: 'Samsung Galaxy Tab S8 Ultra với màn hình 14.6 inch, bút S-Pen, hiệu năng mạnh mẽ',
+    url: '/products/samsung-tab-s8-ultra',
+    discount: 12,
+    rating: 4.5,
+    inStock: true
+  },
+  {
+    id: 'p8',
+    name: 'Xiaomi 13 Pro',
+    price: 19990000,
+    currency: 'VND',
+    imageUrl: '/images/products/xiaomi-13-pro.jpg',
+    description: 'Xiaomi 13 Pro với camera Leica, chip Snapdragon 8 Gen 2, sạc nhanh 120W',
+    url: '/products/xiaomi-13-pro',
+    rating: 4.4,
+    inStock: true
   }
 ];
+
+// Các từ khóa tiếng Việt và tiếng Anh cho từng sản phẩm để tìm kiếm
+const productKeywords: Record<string, string[]> = {
+  'p1': ['iphone', 'iphone 14', 'iphone 14 pro', 'iphone 14 pro max', 'điện thoại apple', 'điện thoại iphone', 'apple', 'smartphone', 'điện thoại'],
+  'p2': ['macbook', 'macbook air', 'macbook air m2', 'laptop apple', 'laptop', 'máy tính xách tay', 'apple'],
+  'p3': ['samsung', 'galaxy', 's23', 'ultra', 'galaxy s23', 's23 ultra', 'samsung galaxy', 'điện thoại samsung', 'điện thoại', 'smartphone'],
+  'p4': ['airpods', 'airpods pro', 'airpods pro 2', 'tai nghe', 'tai nghe apple', 'tai nghe không dây', 'apple'],
+  'p5': ['ipad', 'ipad air', 'ipad air 5', 'máy tính bảng', 'tablet', 'apple'],
+  'p6': ['apple watch', 'watch', 'đồng hồ', 'đồng hồ thông minh', 'apple watch series 8', 'series 8', 'smartwatch', 'apple'],
+  'p7': ['samsung', 'galaxy tab', 'tab s8', 'tab s8 ultra', 'máy tính bảng', 'tablet', 'samsung galaxy'],
+  'p8': ['xiaomi', 'xiaomi 13', 'xiaomi 13 pro', 'điện thoại xiaomi', 'điện thoại', 'smartphone']
+};
 
 // Hàm tính điểm phù hợp cho kết quả tìm kiếm
 function calculateRelevanceScore(product, query) {
@@ -256,18 +258,13 @@ function calculateRelevanceScore(product, query) {
   }
   
   // Thêm điểm cho sản phẩm còn hàng
-  if (product.stock > 0) {
+  if (product.inStock) {
     score += 10; // Ưu tiên sản phẩm còn hàng cao hơn
   }
   
   // Thưởng điểm cho sản phẩm có rating cao (nếu có)
-  if (product.avgRating) {
-    score += Math.min(product.avgRating * 3, 15); // Tối đa 15 điểm cho rating cao nhất (5 sao)
-  }
-  
-  // Thưởng điểm cho sản phẩm đã bán nhiều (nếu có)
-  if (product.soldCount) {
-    score += Math.min(product.soldCount / 10, 20); // Tối đa 20 điểm cho sản phẩm bán chạy
+  if (product.rating) {
+    score += Math.min(product.rating * 3, 15); // Tối đa 15 điểm cho rating cao nhất (5 sao)
   }
   
   return score;
@@ -509,7 +506,7 @@ export async function GET(request: Request) {
       
       // Lọc theo tình trạng còn hàng
       if (inStock) {
-        filteredProducts = filteredProducts.filter(p => p.stock > 0);
+        filteredProducts = filteredProducts.filter(p => p.inStock);
       }
       
       // Lọc theo đánh giá
@@ -703,14 +700,12 @@ export async function GET(request: Request) {
       
       // Lọc theo tình trạng còn hàng
       if (inStock) {
-        where.stock = {
-          gt: 0
-        };
+        where.inStock = true;
       }
       
       // Lọc theo đánh giá nếu có
       if (rating !== undefined) {
-        where.avgRating = {
+        where.rating = {
           gte: rating
         };
       }
@@ -938,7 +933,7 @@ export async function GET(request: Request) {
           }
           
           if (inStock) {
-            filteredProducts = filteredProducts.filter(p => p.stock > 0);
+            filteredProducts = filteredProducts.filter(p => p.inStock);
           }
           
           // Sắp xếp theo các tiêu chí
@@ -1117,5 +1112,47 @@ async function saveSearchHistory(query: string) {
   } catch (error) {
     console.error('Lỗi khi lưu lịch sử tìm kiếm:', error);
     // Không throw error để không ảnh hưởng đến quá trình tìm kiếm
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { query, language = 'vi' } = body;
+    
+    if (!query) {
+      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    
+    // Tìm các sản phẩm phù hợp với từ khóa tìm kiếm
+    const matchedProducts = mockProducts.filter(product => {
+      const keywords = productKeywords[product.id] || [];
+      return keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()));
+    });
+    
+    // Giới hạn kết quả để không quá nhiều
+    const limitedResults = matchedProducts.slice(0, 3);
+    
+    // Thêm thông tin ngôn ngữ cho sản phẩm nếu là tiếng Anh
+    if (language === 'en') {
+      limitedResults.forEach(product => {
+        // Chuyển đổi tên và mô tả sang tiếng Anh
+        if (product.id === 'p1') {
+          product.name = 'iPhone 14 Pro Max';
+          product.description = 'iPhone 14 Pro Max with powerful A16 Bionic chip, 48MP camera, Dynamic Island display';
+        } else if (product.id === 'p2') {
+          product.name = 'MacBook Air M2';
+          product.description = 'MacBook Air M2 thin and light, powerful performance, all-day battery life';
+        }
+        // Tương tự cho các sản phẩm khác...
+      });
+    }
+    
+    return NextResponse.json({ products: limitedResults });
+  } catch (error) {
+    console.error('Error searching products:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

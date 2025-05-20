@@ -9,6 +9,8 @@ import Footer from "@/components/Footer";
 import { Toaster } from 'react-hot-toast';
 import CartProvider from "@/context/CartProvider";
 import { SearchProvider } from "@/context/SearchContext";
+import { ProductProvider } from "@/context/ProductContext";
+import ChatBoxWrapper from "@/components/ChatBoxWrapper";
 
 // Định nghĩa font chữ chính
 const poppins = Poppins({
@@ -42,14 +44,17 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <CartProvider>
             <SearchProvider>
-              <div className="flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-grow pt-32 pb-16">
-                  {children}
-                </main>
-                <Footer />
-              </div>
-              <Toaster position="top-right" />
+              <ProductProvider>
+                <div className="flex flex-col min-h-screen">
+                  <Header />
+                  <main className="flex-grow pt-32 pb-16">
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
+                <ChatBoxWrapper />
+                <Toaster position="top-right" />
+              </ProductProvider>
             </SearchProvider>
           </CartProvider>
         </SessionProvider>

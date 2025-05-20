@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -83,8 +83,6 @@ export default function ProfilePage() {
     endDate: format(new Date(), 'yyyy-MM-dd'),
   });
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   // Initialize user data from session
   useEffect(() => {
     if (session?.user) {
@@ -159,29 +157,32 @@ export default function ProfilePage() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    
     try {
       setIsLoading(true);
-      // Chỉ gửi image nếu là URL hợp lệ
-      const payload: any = { name: userInfo.name };
-      if (userInfo.image && (userInfo.image.startsWith('http://') || userInfo.image.startsWith('https://'))) {
-        payload.image = userInfo.image;
-      }
+      
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          name: userInfo.name,
+          image: userInfo.image
+        }),
       });
+      
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to update profile');
       }
+      
       setSuccess('Thông tin cá nhân đã được cập nhật thành công!');
+      
       // Update session
       if (session && session.user) {
         session.user.name = userInfo.name;
-        if (payload.image) session.user.image = payload.image;
+        session.user.image = userInfo.image;
       }
     } catch (error: any) {
       setError(error.message || 'Đã xảy ra lỗi khi cập nhật thông tin.');
@@ -587,18 +588,6 @@ export default function ProfilePage() {
     );
   };
 
-  // Xử lý chọn file ảnh đại diện
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setUserInfo((prev) => ({ ...prev, image: ev.target?.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   // Loading state
   if (status === 'loading') {
     return (
@@ -780,26 +769,29 @@ export default function ProfilePage() {
                     
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text">Ảnh đại diện</span>
+                        <span className="label-text">URL Hình đại diện</span>
                       </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={handleAvatarFileChange}
-                        className="file-input file-input-bordered"
+                      <input 
+                        type="text" 
+                        name="image"
+                        value={userInfo.image || ''} 
+                        onChange={handleInfoChange}
+                        className="input input-bordered" 
+                        placeholder="https://example.com/your-image.jpg"
                       />
                       <label className="label">
-                        <span className="label-text-alt">Chọn ảnh từ máy tính của bạn</span>
+                        <span className="label-text-alt">Nhập URL hình ảnh đại diện của bạn</span>
                       </label>
                     </div>
-                    {userInfo.image ? (
+                    
+                    {userInfo.image && isValidURL(userInfo.image) ? (
                       <div className="mt-4 flex justify-center">
                         <div className="avatar">
                           <div className="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-                            <Image
-                              src={userInfo.image}
-                              alt="Avatar preview"
+                            <Image 
+                              loader={customImageLoader}
+                              src={userInfo.image} 
+                              alt="Avatar preview" 
                               width={96}
                               height={96}
                               className="object-cover w-full h-full"
