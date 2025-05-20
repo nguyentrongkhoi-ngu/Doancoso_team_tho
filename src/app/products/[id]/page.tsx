@@ -25,6 +25,7 @@ import ProductDetail from '@/components/ProductDetail';
 import RelatedProducts from '@/components/RelatedProducts';
 import Loading from '@/components/Loading';
 import ErrorDisplay from '@/components/ErrorDisplay';
+import { useCurrentProduct } from '@/context/ProductContext';
 
 interface ProductImage {
   id: string;
@@ -58,6 +59,7 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState<number>(1);
   const { trackProductView } = useTracking();
   const { addToCart } = useCart();
+  const { setCurrentProduct } = useCurrentProduct();
   
   // Get the product ID from the URL path instead of params
   const pathname = usePathname();
@@ -95,6 +97,9 @@ export default function ProductPage() {
         const data = await response.json();
         setProduct(data);
         
+        // Cập nhật thông tin sản phẩm hiện tại vào context
+        setCurrentProduct(data);
+        
         // Bắt đầu theo dõi thời gian xem
         setViewStartTime(Date.now());
         
@@ -125,7 +130,7 @@ export default function ProductPage() {
         }
       }
     };
-  }, [safeProductId, trackProductView, router]);
+  }, [safeProductId, trackProductView, router, setCurrentProduct]);
 
   // Xử lý thêm vào giỏ hàng
   const handleAddToCart = async () => {

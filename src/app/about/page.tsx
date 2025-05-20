@@ -1,106 +1,67 @@
-import Image from 'next/image';
+'use client';
+
+import { FC } from 'react';
 import Link from 'next/link';
 
-export default function AboutPage() {
+const AboutPage: FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="relative bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-              Giới thiệu về chúng tôi
-            </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-500">
-              Nền tảng thương mại điện tử thông minh với AI, mang đến trải nghiệm mua sắm tốt nhất cho khách hàng
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto bg-white p-10 rounded-xl shadow-2xl">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-extrabold text-gray-900 leading-tight">Về Chúng Tôi</h1>
+          <p className="mt-4 text-lg text-gray-600">Hiểu thêm về đội ngũ và sứ mệnh của chúng tôi</p>
+        </div>
+        
+        <div className="bg-gray-50 shadow-inner rounded-lg p-8 mb-12 border border-gray-200">
+          <h2 className="text-3xl font-bold text-gray-800 mb-6">Giới Thiệu</h2>
+          <p className="text-gray-700 leading-relaxed">
+            Chúng tôi là một đội ngũ chuyên nghiệp, đam mê công nghệ và luôn tìm kiếm những giải pháp sáng tạo.
+            Với nhiều năm kinh nghiệm trong lĩnh vực, chúng tôi tự hào mang đến những sản phẩm và dịch vụ tốt nhất,
+            đáp ứng nhu cầu đa dạng của khách hàng. Mục tiêu của chúng tôi không chỉ là kinh doanh, mà còn là
+            xây dựng một cộng đồng vững mạnh và góp phần vào sự phát triển chung.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
+          <div className="bg-white shadow-lg rounded-lg p-8 border border-blue-100 transform transition duration-300 hover:scale-105">
+            <h2 className="text-3xl font-bold text-blue-700 mb-4">Sứ Mệnh</h2>
+            <p className="text-gray-700 leading-relaxed">
+              Sứ mệnh của chúng tôi là tạo ra những sản phẩm công nghệ đột phá, mang lại giá trị thiết thực
+              cho người dùng. Chúng tôi cam kết về chất lượng, đổi mới không ngừng và luôn đặt khách hàng
+              làm trung tâm trong mọi hoạt động.
+            </p>
+          </div>
+
+          <div className="bg-white shadow-lg rounded-lg p-8 border border-green-100 transform transition duration-300 hover:scale-105">
+            <h2 className="text-3xl font-bold text-green-700 mb-4">Tầm Nhìn</h2>
+            <p className="text-gray-700 leading-relaxed">
+              Chúng tôi hướng tới trở thành đơn vị tiên phong trong lĩnh vực, được công nhận về sự xuất sắc
+              và đóng góp tích cực cho xã hội. Luôn đón đầu xu hướng công nghệ và mở rộng thị trường để
+              phục vụ nhiều khách hàng hơn nữa.
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Mission & Vision */}
-      <div className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Sứ mệnh</h2>
-              <p className="text-lg text-gray-600">
-                Chúng tôi cam kết mang đến trải nghiệm mua sắm trực tuyến tốt nhất thông qua việc ứng dụng công nghệ AI tiên tiến, 
-                giúp khách hàng dễ dàng tìm kiếm và lựa chọn sản phẩm phù hợp với nhu cầu của mình.
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Tầm nhìn</h2>
-              <p className="text-lg text-gray-600">
-                Trở thành nền tảng thương mại điện tử hàng đầu, tiên phong trong việc ứng dụng AI để cá nhân hóa trải nghiệm 
-                mua sắm và tối ưu hóa quy trình kinh doanh cho đối tác.
-              </p>
-            </div>
+        <div className="mt-12 bg-gray-50 shadow-inner rounded-lg p-8 border border-gray-200">
+          <h2 className="text-3xl font-bold text-gray-800 mb-6">Liên Hệ</h2>
+          <div className="text-gray-700 leading-relaxed">
+            <p className="mb-3"><strong>Email:</strong> contact@example.com</p>
+            <p className="mb-3"><strong>Điện thoại:</strong> (123) 456-7890</p>
+            <p><strong>Địa chỉ:</strong> 123 Đường ABC, Quận XYZ, TP. Hồ Chí Minh</p>
           </div>
         </div>
-      </div>
 
-      {/* Features */}
-      <div className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Tính năng nổi bật</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="text-blue-600 mb-4">
-                <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Recommendation</h3>
-              <p className="text-gray-600">
-                Hệ thống gợi ý sản phẩm thông minh dựa trên hành vi và sở thích của người dùng
-              </p>
-            </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="text-blue-600 mb-4">
-                <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Tùy chỉnh giao diện</h3>
-              <p className="text-gray-600">
-                Giao diện thân thiện, dễ sử dụng và tùy chỉnh theo nhu cầu của người dùng
-              </p>
-            </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="text-blue-600 mb-4">
-                <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Bảo mật cao</h3>
-              <p className="text-gray-600">
-                Hệ thống bảo mật đa lớp, đảm bảo an toàn cho thông tin và giao dịch của khách hàng
-              </p>
-            </div>
-          </div>
+        <div className="text-center mt-12">
+          <Link href="/products" legacyBehavior>
+            <a className="inline-block bg-blue-600 text-white text-xl font-semibold py-4 px-10 rounded-full shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105">
+              Xem Sản Phẩm Của Chúng Tôi
+            </a>
+          </Link>
         </div>
-      </div>
 
-      {/* CTA Section */}
-      <div className="bg-blue-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Sẵn sàng trải nghiệm?
-            </h2>
-            <p className="text-xl text-blue-100 mb-8">
-              Khám phá ngay các tính năng thông minh của chúng tôi
-            </p>
-            <Link 
-              href="/products" 
-              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-            >
-              Bắt đầu mua sắm
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );
-} 
+};
+
+export default AboutPage; 

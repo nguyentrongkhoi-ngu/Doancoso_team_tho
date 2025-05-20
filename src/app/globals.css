@@ -125,6 +125,85 @@ section[id],
   }
 }
 
+/* Chatbox animations */
+@keyframes fadeInBottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blinkPulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Thêm mới: Hiệu ứng đang nhập */
+@keyframes typingDots {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Thêm mới: Hiệu ứng ripple cho nút chat */
+@keyframes ripple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(var(--color-primary-rgb), 0);
+  }
+}
+
+/* Thêm mới: Hiệu ứng slide-in từ phải */
+@keyframes slideInRight {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Thêm mới: Hiệu ứng slide-in từ trái */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* Animation utilities */
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease-out forwards;
@@ -144,6 +223,30 @@ section[id],
 
 .animate-pulse-slow {
   animation: pulse 3s infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fadeInBottom {
+  animation: fadeInBottom 0.4s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+.animate-blink {
+  animation: blinkPulse 1.5s infinite;
+}
+
+.animate-typing-dots {
+  animation: typingDots 1.5s infinite;
+}
+
+.animate-ripple {
+  animation: ripple 1.5s infinite;
 }
 
 .animation-delay-100 {
@@ -173,6 +276,15 @@ section[id],
 
 .hover-scale:hover {
   transform: scale(1.05);
+}
+
+/* Thêm mới: Hiệu ứng hover glow */
+.hover-glow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 8px rgba(var(--color-primary-rgb), 0.6);
 }
 
 /* High-quality images */
