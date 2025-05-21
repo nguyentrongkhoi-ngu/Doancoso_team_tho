@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchProvinces, fetchDistrictsForProvince } from '@/lib/administrativeData';
+import { fetchProvinces, fetchDistrictsForProvince, fetchWardsForDistrict, Ward } from '@/lib/administrativeData';
 
 interface Address {
   id: string;
@@ -13,6 +13,7 @@ interface Address {
   country: string;
   phoneNumber: string;
   isDefault: boolean;
+  ward: string;
 }
 
 interface AddressesSectionProps {
@@ -36,12 +37,14 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
     postalCode: '',
     country: 'Việt Nam', // Default
     phoneNumber: '',
-    isDefault: false
+    isDefault: false,
+    ward: '',
   });
   
-  // State cho danh sách tỉnh/thành phố và quận/huyện
+  // State cho danh sách tỉnh/thành phố, quận/huyện, và phường/xã
   const [provinces, setProvinces] = useState<{ code: string; name: string }[]>([]);
   const [districts, setDistricts] = useState<{ code: string; name: string }[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
   
   const fetchAddresses = async () => {
@@ -86,12 +89,28 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
       setLoadingLocations(true);
       fetchDistrictsForProvince(selectedProvince.code).then((districtsData) => {
         setDistricts(districtsData);
+        setWards([]);
         setLoadingLocations(false);
       });
     } else {
       setDistricts([]);
+      setWards([]);
     }
   }, [formData.city, provinces]);
+
+  // Load wards khi chọn quận/huyện
+  useEffect(() => {
+    const selectedDistrict = districts.find(d => d.name === formData.state);
+    if (selectedDistrict) {
+      setLoadingLocations(true);
+      fetchWardsForDistrict(selectedDistrict.code).then((wardsData) => {
+        setWards(wardsData);
+        setLoadingLocations(false);
+      });
+    } else {
+      setWards([]);
+    }
+  }, [formData.state, districts]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -114,7 +133,8 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
       postalCode: '',
       country: 'Việt Nam',
       phoneNumber: '',
-      isDefault: false
+      isDefault: false,
+      ward: '',
     });
   };
   
@@ -219,7 +239,8 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
       postalCode: address.postalCode || '',
       country: address.country,
       phoneNumber: address.phoneNumber,
-      isDefault: address.isDefault
+      isDefault: address.isDefault,
+      ward: address.ward || '',
     });
     setShowEditForm(true);
   };
@@ -336,6 +357,32 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
                       <option key={district.code} value={district.name}>{district.name}</option>
                     ))}
                   </select>
+                </div>
+                
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">Phường/Xã</span>
+                  </label>
+                  <select
+                    name="ward"
+                    value={formData.ward}
+                    onChange={handleInputChange}
+                    className="select select-bordered w-full"
+                    disabled={!formData.state || loadingLocations}
+                  >
+                    <option value="" disabled>Chọn Phường/Xã</option>
+                    {wards.map(ward => (
+                      <option key={ward.code} value={ward.name}>
+                        {ward.name}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingLocations && !wards.length && (
+                    <div className="mt-2 text-sm text-primary flex items-center">
+                      <span className="loading loading-spinner loading-xs mr-2"></span>
+                      <span>Đang tải phường/xã...</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="form-control">
@@ -487,6 +534,32 @@ export default function AddressesSection({ onError }: AddressesSectionProps) {
                       <option key={district.code} value={district.name}>{district.name}</option>
                     ))}
                   </select>
+                </div>
+                
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">Phường/Xã</span>
+                  </label>
+                  <select
+                    name="ward"
+                    value={formData.ward}
+                    onChange={handleInputChange}
+                    className="select select-bordered w-full"
+                    disabled={!formData.state || loadingLocations}
+                  >
+                    <option value="" disabled>Chọn Phường/Xã</option>
+                    {wards.map(ward => (
+                      <option key={ward.code} value={ward.name}>
+                        {ward.name}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingLocations && !wards.length && (
+                    <div className="mt-2 text-sm text-primary flex items-center">
+                      <span className="loading loading-spinner loading-xs mr-2"></span>
+                      <span>Đang tải phường/xã...</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="form-control">
