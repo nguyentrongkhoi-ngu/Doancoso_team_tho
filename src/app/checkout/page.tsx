@@ -82,11 +82,10 @@ export default function CheckoutPage() {
     loadProvinces();
   }, []);
   
-  // Load cart data on component mount
+  // Load cart data on component mount and fetch default address
   useEffect(() => {
     if (status === 'authenticated') {
       if (cartItems.length === 0) {
-        // Redirect to cart page if cart is empty
         toast.error('Giỏ hàng của bạn đang trống');
         router.push('/cart');
         return;
@@ -108,13 +107,192 @@ export default function CheckoutPage() {
         console.error('Lỗi khi đọc dữ liệu từ localStorage:', error);
       }
       
-      setLoading(false);
+      // === Logic mới: Chỉ fetch địa chỉ mặc định và cập nhật shippingAddress ===
+      const fetchAndSetDefaultAddress = async () => {
+        try {
+          // Chờ provinces load xong trước khi tìm kiếm
+          // loadProvinces() được gọi trong useEffect riêng khi component mount
+          // Chúng ta có thể thêm một state isLoadingProvinces nếu cần kiểm tra kỹ hơn
+          // Tạm thời, giả định provinces đã load xong khi fetchAndSetDefaultAddress được gọi lần đầu sau authenticated
+
+          const response = await fetch('/api/addresses');
+          if (!response.ok) {
+            throw new Error('Failed to fetch addresses');
+          }
+          const data = await response.json();
+          const addresses = data.addresses || [];
+
+          const defaultAddress = addresses.find((addr: any) => addr.isDefault);
+
+          if (defaultAddress) {
+            // Cập nhật state shippingAddress với tất cả thông tin từ địa chỉ mặc định
+            // Việc này sẽ tự động kích hoạt các useEffect để tải districts và wards
+            setShippingAddress({
+              fullName: defaultAddress.fullName || '',
+              phoneNumber: defaultAddress.phoneNumber || '',
+              address: defaultAddress.address || '',
+              ward: defaultAddress.ward || '', // Sử dụng giá trị ward từ địa chỉ mặc định
+              district: defaultAddress.district || '', // Sử dụng giá trị district từ địa chỉ mặc định
+              city: defaultAddress.city || '', // Sử dụng giá trị city từ địa chỉ mặc định
+              country: defaultAddress.country || 'Vietnam',
+              shippingNote: defaultAddress.shippingNote || ''
+            });
+
+            // Không cần fetch và set districts/wards ở đây nữa
+            // Các useEffects riêng biệt sẽ xử lý việc này khi shippingAddress thay đổi
+
+          } else {
+            // Nếu không tìm thấy địa chỉ mặc định, reset form về trạng thái ban đầu (trống)
+            setShippingAddress({
+              fullName: '',
+              phoneNumber: '',
+              address: '',
+              ward: '',
+              district: '',
+              city: '',
+              country: 'Vietnam',
+              shippingNote: ''
+            });
+            // Reset districts và wards cũng được xử lý bởi các useEffect khi city/district trống
+            setDistricts([]);
+            setWards([]);
+          }
+        } catch (err) {
+          console.error('Error fetching or setting default address:', err);
+          // Xử lý lỗi nếu cần
+          // Có thể reset form hoặc hiển thị thông báo lỗi cho người dùng
+          setShippingAddress({
+            fullName: '',
+            phoneNumber: '',
+            address: '',
+            ward: '',
+            district: '',
+            city: '',
+            country: 'Vietnam',
+            shippingNote: ''
+          });
+          setDistricts([]);
+          setWards([]);
+          // toast.error('Không thể tải địa chỉ mặc định.'); // Hiển thị thông báo lỗi cho người dùng
+        } finally {
+          setLoading(false); // Dừng trạng thái loading sau khi fetch xong
+        }
+      };
+
+      fetchAndSetDefaultAddress();
+
     } else if (status === 'unauthenticated') {
-      // Redirect to login page if not authenticated
       router.push('/login?redirectTo=/checkout');
     }
-  }, [status, cartItems, router, cartTotal]);
+  }, [status, cartItems, router, cartTotal, session, provinces]); // Giữ 'provinces' trong dependency array
   
+  // Load provinces data when component mounts
+  // Hàm này vẫn chạy độc lập để đảm bảo provinces luôn có sẵn
+  useEffect(() => {
+    loadProvinces();
+  }, []);
+
+  // Load districts data when city changes in shippingAddress state
+  useEffect(() => {
+    const selectedProvince = provinces.find(p => p.name === shippingAddress.city);
+    if (selectedProvince) {
+      setLoadingLocations(true);
+      const fetchAndSetDistricts = async () => {
+        try {
+          const districtsData = await fetchDistrictsForProvince(selectedProvince.code);
+          setDistricts(districtsData);
+          // Quan trọng: KHÔNG reset ward ở đây khi city thay đổi nếu district có giá trị
+          // setWards([]); // Bỏ reset wards ở đây
+        } catch (error) {
+          console.error('Lỗi khi tải quận/huyện:', error);
+          // toast.error('Không thể tải danh sách quận/huyện');
+          setDistricts([]);
+          setWards([]);
+        } finally {
+          setLoadingLocations(false);
+        }
+      };
+      fetchAndSetDistricts();
+    } else {
+      setDistricts([]);
+      setWards([]);
+    }
+  }, [shippingAddress.city, provinces]); // Depend on city in shippingAddress and provinces list
+
+  // Load wards data when district changes in shippingAddress state
+  useEffect(() => {
+    const selectedDistrict = districts.find(d => d.name === shippingAddress.district);
+    if (selectedDistrict) {
+      setLoadingLocations(true);
+      const fetchAndSetWards = async () => {
+        try {
+          const wardsData = await fetchWardsForDistrict(selectedDistrict.code);
+          setWards(wardsData);
+        } catch (error) {
+          console.error('Lỗi khi tải phường/xã:', error);
+          // toast.error('Không thể tải danh sách phường/xã');
+          setWards([]);
+        } finally {
+          setLoadingLocations(false);
+        }
+      };
+      fetchAndSetWards();
+    } else {
+      setWards([]);
+    }
+  }, [shippingAddress.district, districts]); // Depend on district in shippingAddress and districts list
+  
+  // Load provinces data
+  const loadProvinces = async () => {
+    try {
+      setLoadingLocations(true);
+      
+      // Fetch provinces từ API
+      const provincesData = await fetchProvinces();
+      setProvinces(provincesData); // Cập nhật state provinces
+      
+      // Không cần reset districts/wards ở đây vì sẽ được xử lý bởi các useEffect khác
+      
+    } catch (error) {
+      console.error('Lỗi khi tải tỉnh/thành phố:', error);
+      toast.error('Không thể tải danh sách tỉnh/thành phố');
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+  
+  // Load districts data for a province - Hàm này không còn cập nhật state Districts trực tiếp nữa
+  // Logic load districts được chuyển vào useEffect riêng
+  // Tuy nhiên, chúng ta giữ hàm này để có thể gọi trực tiếp API nếu cần (ví dụ trong fetchAndSetDefaultAddress)
+  // Đổi tên hàm để rõ ràng hơn (tùy chọn)
+  // const fetchDistricts = async (provinceCode: string) => {
+  //   try {
+  //     const districtsData = await fetchDistrictsForProvince(provinceCode);
+  //     return districtsData;
+  //   } catch (error) {
+  //     console.error('Lỗi khi tải quận/huyện:', error);
+  //     return [];
+  //   }
+  // };
+  
+  // Load wards data for a district - Hàm này không còn cập nhật state Wards trực tiếp nữa
+  // Logic load wards được chuyển vào useEffect riêng
+  // Tương tự như fetchDistricts, giữ lại để gọi trực tiếp API nếu cần
+  // const fetchWards = async (districtCode: string) => {
+  //   try {
+  //     const wardsData = await fetchWardsForDistrict(districtCode);
+  //      return wardsData;
+  //   } catch (error) {
+  //     console.error('Lỗi khi tải phường/xã:', error);
+  //      return [];
+  //   }
+  // };
+
+  // Hàm này không còn cần thiết vì logic đã chuyển vào useEffect
+  // const loadDistricts = async (provinceCode: string) => { /* ... */ };
+  // Hàm này không còn cần thiết vì logic đã chuyển vào useEffect
+  // const loadWards = async (districtCode: string) => { /* ... */ };
+
   // Handle window unload/refresh
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -127,131 +305,24 @@ export default function CheckoutPage() {
     };
   }, []);
   
-  // Handle input change for shipping form
+  // Handle input change for shipping form - Cập nhật lại để không gọi loadDistricts/loadWards trực tiếp nữa
   const handleShippingInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
-    // Xử lý khi thay đổi tỉnh/thành phố, quận/huyện hoặc phường/xã
-    if (name === 'city') {
-      // Tìm tỉnh/thành phố được chọn để lấy mã
-      const selectedProvince = provinces.find(p => p.name === value);
-      if (selectedProvince) {
-        // Cập nhật state và tải quận/huyện mới
-        setShippingAddress(prev => ({
-          ...prev,
-          city: value,
-          district: '',
-          ward: ''
-        }));
-        loadDistricts(selectedProvince.code);
-      }
-    } else if (name === 'district') {
-      // Tìm quận/huyện được chọn để lấy mã
-      const selectedDistrict = districts.find(d => d.name === value);
-      if (selectedDistrict) {
-        // Cập nhật state và tải phường/xã mới
-        setShippingAddress(prev => ({
-          ...prev,
-          district: value,
-          ward: ''
-        }));
-        loadWards(selectedDistrict.code);
-      }
-    } else if (name === 'ward') {
-      // Đơn giản chỉ cập nhật giá trị phường/xã
-      setShippingAddress(prev => ({
-        ...prev,
-        ward: value
-      }));
-    } else {
-      // Cập nhật các trường khác một cách bình thường
-      setShippingAddress(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-    
+
+    setShippingAddress(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Khi thay đổi city hoặc district, các useEffects sẽ tự động tải dữ liệu mới
+    // Không cần gọi fetchDistrictsForProvince hoặc fetchWardsForDistrict trực tiếp ở đây nữa
+
     // Xóa lỗi cho trường đang được cập nhật
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
       }));
-    }
-  };
-  
-  // Load provinces data
-  const loadProvinces = async () => {
-    try {
-      setLoadingLocations(true);
-      
-      // Fetch provinces từ API
-      const provincesData = await fetchProvinces();
-      setProvinces(provincesData);
-      
-      // Reset các trường liên quan
-      setDistricts([]);
-      setWards([]);
-      
-    } catch (error) {
-      console.error('Lỗi khi tải tỉnh/thành phố:', error);
-      toast.error('Không thể tải danh sách tỉnh/thành phố');
-    } finally {
-      setLoadingLocations(false);
-    }
-  };
-  
-  // Load districts data for a province
-  const loadDistricts = async (provinceCode: string) => {
-    try {
-      setLoadingLocations(true);
-      
-      // Fetch districts từ API
-      const districtsData = await fetchDistrictsForProvince(provinceCode);
-      setDistricts(districtsData);
-      
-      // Reset phường/xã khi thay đổi quận/huyện
-      setWards([]);
-      
-    } catch (error) {
-      console.error('Lỗi khi tải quận/huyện:', error);
-      toast.error('Không thể tải danh sách quận/huyện');
-    } finally {
-      setLoadingLocations(false);
-    }
-  };
-  
-  // Load wards data for a district
-  const loadWards = async (districtCode: string) => {
-    try {
-      setLoadingLocations(true);
-      
-      // Fetch wards từ API
-      const wardsData = await fetchWardsForDistrict(districtCode);
-      
-      if (wardsData.length === 0) {
-        console.log(`Không có dữ liệu phường/xã cho quận/huyện có mã: ${districtCode}`);
-        toast.error('Không có dữ liệu phường/xã cho quận/huyện này');
-        
-        // Hiển thị gợi ý để người dùng nhập phường/xã vào ghi chú
-        setShippingAddress(prev => ({
-          ...prev,
-          shippingNote: prev.shippingNote ? prev.shippingNote : 'Phường/xã: '
-        }));
-        
-        // Thêm một tùy chọn thông báo cho người dùng
-        setWards([
-          { code: `${districtCode}00`, name: "-- Vui lòng nhập tên phường/xã vào ghi chú --", districtCode }
-        ]);
-      } else {
-        setWards(wardsData);
-      }
-      
-    } catch (error) {
-      console.error('Lỗi khi tải phường/xã:', error);
-      toast.error('Không thể tải danh sách phường/xã');
-    } finally {
-      setLoadingLocations(false);
     }
   };
   
@@ -576,10 +647,10 @@ export default function CheckoutPage() {
                           <span className="label-text-alt text-error">{errors.ward}</span>
                         </label>
                       )}
-                      {loadingLocations && (
+                      {loadingLocations && !wards.length && shippingAddress.district && (
                         <div className="mt-2 text-sm text-primary flex items-center">
                           <Loader2 size={14} className="animate-spin mr-2" />
-                          <span>Đang tải dữ liệu...</span>
+                          <span>Đang tải phường/xã...</span>
                         </div>
                       )}
                     </div>
@@ -606,33 +677,16 @@ export default function CheckoutPage() {
                   
                   <div className="form-control w-full">
                     <label className="label">
-                      <span className={`label-text font-medium ${!wards.length || (wards.length === 1 && wards[0].code.endsWith('00')) ? 'text-warning font-bold' : ''}`}>
-                        Ghi chú giao hàng {!wards.length || (wards.length === 1 && wards[0].code.endsWith('00')) ? '(Vui lòng nhập tên phường/xã vào đây)' : ''}
-                      </span>
+                      <span className="label-text font-medium">Ghi chú</span>
                     </label>
                     <textarea
                       name="shippingNote"
                       value={shippingAddress.shippingNote}
                       onChange={handleShippingInputChange}
-                      placeholder={!wards.length || (wards.length === 1 && wards[0].code.endsWith('00')) 
-                        ? "Vui lòng nhập tên phường/xã của bạn vào đây và các ghi chú khác (nếu có)"
-                        : "Ghi chú thêm cho đơn vị vận chuyển (không bắt buộc)"}
-                      className={`textarea ${
-                        errors.shippingNote ? 'textarea-error' : 
-                        (!wards.length || (wards.length === 1 && wards[0].code.endsWith('00'))) 
-                          ? 'textarea-warning focus:textarea-warning' 
-                          : 'textarea-bordered'} w-full`}
+                      placeholder="Ghi chú thêm cho đơn vị vận chuyển (không bắt buộc)"
+                      className={`textarea ${errors.shippingNote ? 'textarea-error' : 'textarea-bordered'} w-full`}
                       rows={3}
                     ></textarea>
-                    {errors.shippingNote ? (
-                      <label className="label">
-                        <span className="label-text-alt text-error">{errors.shippingNote}</span>
-                      </label>
-                    ) : (!wards.length || (wards.length === 1 && wards[0].code.endsWith('00'))) && (
-                      <label className="label">
-                        <span className="label-text-alt text-warning">Vui lòng ghi rõ tên phường/xã vào ô ghi chú này</span>
-                      </label>
-                    )}
                   </div>
                 </div>
               </motion.div>
