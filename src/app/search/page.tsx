@@ -7,8 +7,8 @@ import Image from 'next/image';
 import { formatCurrency } from '@/lib/formatters';
 import { customImageLoader } from '@/lib/imageLoader';
 import { useTracking } from '@/hooks/useTracking';
-import ProductCard from '@/components/ProductCard';
-import SearchBar from '@/components/SearchBar';
+// import ProductCard from '@/components/ProductCard';
+// import SearchBar from '@/components/SearchBar';
 
 // Types
 interface Product {
@@ -61,7 +61,7 @@ const highlightText = (text: string, query: string) => {
 };
 
 // Tối ưu hiệu suất tải trang bằng cách lazy load các thành phần
-const ProductCard = ({ product, searchQuery }) => {
+const ProductCard = ({ product, searchQuery }: { product: Product, searchQuery: string }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   
   return (
@@ -235,7 +235,7 @@ export default function SearchPage() {
         if (query && query.length >= 2) {
           trackSearch(query);
         }
-      } catch (err) {
+      } catch (err: any) {
         if (!isMounted) return;
         if (err.name === 'AbortError') {
           console.log('Fetch aborted');
@@ -366,7 +366,7 @@ export default function SearchPage() {
         currentParams.set('page', nextPage.toString());
         router.push(`/search?${currentParams.toString()}`, { scroll: false });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading more products:', err);
       
       // Có thể là lỗi kết nối hoặc lỗi server
@@ -517,7 +517,7 @@ export default function SearchPage() {
   };
 
   // Handle price range filter change
-  const handlePriceChange = (min: number, max: number) => {
+  const handlePriceChange = (min: number | undefined, max: number | undefined) => {
     setFilters(prev => ({
       ...prev,
       minPrice: min,
@@ -609,224 +609,6 @@ export default function SearchPage() {
     <div className="container mx-auto px-4 py-8 pt-24">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-6">Tìm kiếm sản phẩm</h1>
-        
-        {/* Smart search with advanced options */}
-        <div className="bg-base-100 p-6 rounded-xl shadow-sm mb-6">
-          <div className="relative mb-4" ref={searchInputRef}>
-            <form onSubmit={handleSearch} className="flex w-full">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm sản phẩm..."
-                  className="w-full px-4 py-3 pl-12 rounded-l-xl border border-base-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  autoComplete="off"
-                  ref={searchInputRef}
-                />
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/70">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                
-                {/* Suggestions dropdown */}
-                {showSuggestions && (searchTerm.length > 0 || recentSearches.length > 0) && (
-                  <div className="absolute z-30 top-full left-0 right-0 mt-2 bg-base-100 rounded-lg shadow-lg border border-base-300 max-h-80 overflow-auto">
-                    {searchTerm.length > 0 && suggestions.length > 0 && (
-                      <div className="p-2">
-                        <div className="text-sm font-medium text-base-content/70 px-3 py-1.5">Gợi ý từ khóa</div>
-                        {suggestions.map((suggestion, index) => (
-                          <div
-                            key={index}
-                            className="w-full text-left px-3 py-2 hover:bg-base-200 rounded-lg flex items-center cursor-pointer" 
-                            onClick={() => handleSuggestionClick(suggestion)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            {highlightText(suggestion, searchTerm)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {recentSearches.length > 0 && (
-                      <div className="p-2 border-t border-base-300">
-                        <div className="text-sm font-medium text-base-content/70 px-3 py-1.5">Tìm kiếm gần đây</div>
-                        {recentSearches.map((search, index) => (
-                          <div
-                            key={index}
-                            className="w-full text-left px-3 py-2 hover:bg-base-200 rounded-lg flex items-center cursor-pointer"
-                            onClick={() => handleSuggestionClick(search)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-base-content/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {highlightText(search, searchTerm)}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <button
-                type="submit"
-                className="px-6 bg-primary hover:bg-primary-focus text-primary-content rounded-r-xl transition-colors"
-              >
-                Tìm kiếm
-              </button>
-            </form>
-          </div>
-
-          {/* Advanced search toggle */}
-          <div className="flex justify-between items-center mb-2">
-            <button
-              type="button"
-              className="text-sm flex items-center text-primary hover:underline"
-              onClick={toggleAdvancedSearch}
-            >
-              <span>{showAdvancedSearch ? 'Ẩn tìm kiếm nâng cao' : 'Hiện tìm kiếm nâng cao'}</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className={`h-4 w-4 ml-1 transition-transform ${showAdvancedSearch ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {Object.values(filters).some(v => v !== undefined && v !== '' && v !== 'relevance') && (
-              <button
-                type="button"
-                className="text-sm text-error hover:underline"
-                onClick={resetFilters}
-              >
-                Xóa bộ lọc
-              </button>
-            )}
-          </div>
-
-          {/* Advanced search options */}
-          {showAdvancedSearch && (
-            <div className="bg-base-200 p-4 rounded-lg mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Categories */}
-              <div className="space-y-2">
-                <h3 className="font-medium text-sm mb-2">Danh mục sản phẩm</h3>
-                <select 
-                  className="select select-bordered w-full"
-                  value={filters.category || ''}
-                  onChange={(e) => handleCategoryChange(e.target.value || null)}
-                >
-                  <option value="">Tất cả danh mục</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Price range */}
-              <div className="space-y-2">
-                <h3 className="font-medium text-sm mb-2">Khoảng giá</h3>
-                <select 
-                  className="select select-bordered w-full"
-                  value={filters.minPrice !== undefined && filters.maxPrice !== undefined 
-                    ? `${filters.minPrice}-${filters.maxPrice}` 
-                    : ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '') {
-                      handlePriceChange(undefined, undefined);
-                    } else {
-                      const [min, max] = value.split('-').map(Number);
-                      handlePriceChange(min, max);
-                    }
-                  }}
-                >
-                  <option value="">Tất cả khoảng giá</option>
-                  {priceRanges.map((range, index) => (
-                    <option key={index} value={`${range.min}-${range.max}`}>
-                      {range.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sort options */}
-              <div className="space-y-2">
-                <h3 className="font-medium text-sm mb-2">Sắp xếp theo</h3>
-                <select 
-                  className="select select-bordered w-full"
-                  value={filters.sort || 'relevance'}
-                  onChange={(e) => handleSortChange(e.target.value)}
-                >
-                  <option value="relevance">Phù hợp nhất</option>
-                  <option value="price_asc">Giá: Thấp đến cao</option>
-                  <option value="price_desc">Giá: Cao đến thấp</option>
-                  <option value="newest">Mới nhất</option>
-                  <option value="popular">Phổ biến nhất</option>
-                </select>
-              </div>
-
-              {/* Additional filters */}
-              <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* In-stock filter */}
-                <div className="form-control">
-                  <label className="label cursor-pointer justify-start gap-2">
-                    <input 
-                      type="checkbox"
-                      className="checkbox checkbox-primary checkbox-sm"
-                      checked={filters.inStock || false}
-                      onChange={(e) => handleInStockChange(e.target.checked)}
-                    />
-                    <span className="label-text">Chỉ hiển thị sản phẩm còn hàng</span>
-                  </label>
-                </div>
-
-                {/* Rating filter */}
-                <div className="space-y-2">
-                  <h3 className="font-medium text-sm">Đánh giá</h3>
-                  <div className="flex items-center space-x-2">
-                    {[5, 4, 3, 2, 1].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        className={`rounded-full px-3 py-1 text-sm ${
-                          filters.rating === star
-                            ? 'bg-primary text-primary-content'
-                            : 'bg-base-300 hover:bg-base-content/20'
-                        }`}
-                        onClick={() => handleRatingChange(filters.rating === star ? undefined : star)}
-                      >
-                        {star}⭐ trở lên
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Apply filters button */}
-              <div className="md:col-span-3 flex justify-end">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={applyFilters}
-                >
-                  Áp dụng bộ lọc
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
       
       {query ? (
