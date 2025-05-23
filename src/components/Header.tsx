@@ -8,11 +8,13 @@ import Image from 'next/image';
 import AvatarPlaceholder from './AvatarPlaceholder';
 import { isValidURL, customImageLoader } from '@/lib/imageLoader';
 import SearchField from './SearchField';
-import { ShoppingBag, Search, X } from 'lucide-react';
+import { ShoppingBag, Search, X, ChevronDown, Sun, Moon } from 'lucide-react';
 import MiniCart from './MiniCart';
 import { useCart } from '@/context/CartProvider';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchContext } from '@/context/SearchContext';
+import { useTheme } from '@/context/ThemeProvider';
+import axios from 'axios';
 
 export default function Header() {
   const { data: session, status } = useSession();
@@ -20,12 +22,18 @@ export default function Header() {
   const pathname = usePathname();
   const { cartCount } = useCart();
   const { searchTerm, clearSearch, isSearching, executeSearch } = useSearchContext();
+  const { theme, toggleTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMiniCartOpen, setIsMiniCartOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const miniCartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const categoryMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const categoryMenuRef = useRef<HTMLDivElement>(null);
 
   // Thêm hiệu ứng thay đổi header khi cuộn
   useEffect(() => {
@@ -81,7 +89,7 @@ export default function Header() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        searchContainerRef.current && 
+        searchContainerRef.current &&
         !searchContainerRef.current.contains(event.target as Node) &&
         isSearchExpanded
       ) {
@@ -108,6 +116,83 @@ export default function Header() {
     clearSearch();
   }, [clearSearch]);
 
+  // Lấy danh sách danh mục
+  const fetchCategories = useCallback(async () => {
+    if (categories.length > 0) return; // Đã có dữ liệu rồi
+
+    try {
+      setLoadingCategories(true);
+      const response = await axios.get('/api/categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách danh mục:', error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  }, [categories.length]);
+
+  // Xử lý khi hover vào nút danh mục
+  const handleCategoryMouseEnter = () => {
+    fetchCategories();
+    setIsCategoryMenuOpen(true);
+  };
+
+  // Xử lý khi hover ra khỏi nút danh mục
+  const handleCategoryMouseLeave = () => {
+    // Sử dụng timeout để tránh đóng menu ngay lập tức
+    if (categoryMenuTimeoutRef.current) {
+      clearTimeout(categoryMenuTimeoutRef.current);
+    }
+    categoryMenuTimeoutRef.current = setTimeout(() => {
+      setIsCategoryMenuOpen(false);
+    }, 300); // Thời gian trễ dài hơn để người dùng có thể di chuột xuống menu
+  };
+
+  // Xử lý khi di chuột vào dropdown menu
+  const handleCategoryMenuMouseEnter = () => {
+    // Hủy timeout đóng menu nếu có
+    if (categoryMenuTimeoutRef.current) {
+      clearTimeout(categoryMenuTimeoutRef.current);
+    }
+  };
+
+  // Xử lý khi click vào nút danh mục
+  const handleCategoryButtonClick = () => {
+    fetchCategories();
+    setIsCategoryMenuOpen(!isCategoryMenuOpen);
+  };
+
+  // Xử lý khi chọn danh mục
+  const handleCategoryClick = (categoryId: string) => {
+    console.log('handleCategoryClick called with categoryId:', categoryId);
+    setIsCategoryMenuOpen(false);
+
+    // Luôn chuyển hướng đến trang products với tham số category
+    // Sử dụng router.push để đảm bảo trang được tải lại hoàn toàn
+    router.push(`/products?category=${encodeURIComponent(categoryId)}&page=1`);
+
+    // Log để debug
+    console.log(`Redirecting to /products?category=${encodeURIComponent(categoryId)}&page=1`);
+  };
+
+  // Xử lý click bên ngoài dropdown menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
+        setIsCategoryMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      // Dọn dẹp timeout khi component unmount
+      if (categoryMenuTimeoutRef.current) {
+        clearTimeout(categoryMenuTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <header className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-base-100/95 backdrop-blur-md shadow-md py-2' : 'bg-base-100 py-4'}`}>
       <div className="container mx-auto px-4">
@@ -122,28 +207,90 @@ export default function Header() {
 
             {/* Menu Desktop */}
             <nav className="hidden md:flex ml-10 space-x-1">
-              {['products', 'categories', 'about'].map((item) => (
-                <Link 
-                  key={item} 
-                  href={`/${item}`}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    isActive(`/${item}`) 
-                      ? 'bg-primary/10 text-primary' 
+              {/* Sản phẩm */}
+              <Link
+                href="/products"
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  isActive('/products')
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-base-200'
+                }`}
+              >
+                Sản phẩm
+              </Link>
+
+              {/* Danh mục với dropdown */}
+              <div
+                className="relative"
+                ref={categoryMenuRef}
+              >
+                <button
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
+                    isActive('/categories')
+                      ? 'bg-primary/10 text-primary'
                       : 'hover:bg-base-200'
                   }`}
+                  onClick={handleCategoryButtonClick}
+                  onMouseEnter={handleCategoryMouseEnter}
+                  onMouseLeave={handleCategoryMouseLeave}
                 >
-                  {item === 'products' ? 'Sản phẩm' : 
-                   item === 'categories' ? 'Danh mục' : 
-                   item === 'about' ? 'Giới thiệu' : item}
-                </Link>
-              ))}
+                  Danh mục
+                  <ChevronDown className={`h-4 w-4 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown menu cho danh mục */}
+                {isCategoryMenuOpen && (
+                  <div
+                    className="absolute left-0 mt-2 w-56 rounded-xl bg-base-100 shadow-lg ring-1 ring-black/5 z-50"
+                    onMouseEnter={handleCategoryMenuMouseEnter}
+                    onMouseLeave={handleCategoryMouseLeave}
+                  >
+                    {/* Vùng kết nối giữa nút và dropdown để dễ di chuột */}
+                    <div className="absolute h-2 w-full -top-2"></div>
+
+                    <div className="p-2">
+                      {loadingCategories ? (
+                        <div className="flex justify-center py-4">
+                          <div className="loading loading-spinner loading-sm"></div>
+                        </div>
+                      ) : categories.length === 0 ? (
+                        <div className="px-4 py-2 text-sm text-gray-500">Không có danh mục nào</div>
+                      ) : (
+                        <div className="max-h-80 overflow-y-auto">
+                          {categories.map((category) => (
+                            <button
+                              key={category.id}
+                              className="flex w-full items-center px-4 py-2 text-sm hover:bg-base-200 rounded-lg transition-colors"
+                              onClick={() => handleCategoryClick(category.id)}
+                            >
+                              {category.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Giới thiệu */}
+              <Link
+                href="/about"
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  isActive('/about')
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-base-200'
+                }`}
+              >
+                Giới thiệu
+              </Link>
             </nav>
           </div>
 
           {/* Tìm kiếm và Actions */}
           <div className="flex items-center gap-2">
             {/* Tìm kiếm Desktop - phiên bản sử dụng SearchContext */}
-            <div 
+            <div
               ref={searchContainerRef}
               className={`hidden md:flex items-center transition-all duration-300 ${
                 isSearchExpanded ? 'w-96' : 'w-80'
@@ -161,14 +308,14 @@ export default function Header() {
                     <div className="loading loading-spinner loading-xs"></div>
                   </motion.div>
                 ) : (
-                  <motion.div 
+                  <motion.div
                     key="search-input"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="w-full"
                   >
-                    <SearchField 
+                    <SearchField
                       size="sm"
                       className="w-full"
                       placeholder="Tìm kiếm sản phẩm..."
@@ -186,7 +333,7 @@ export default function Header() {
             </div>
 
             {/* Search button for small devices */}
-            <button 
+            <button
               className="md:hidden p-2 rounded-full hover:bg-base-200 transition-colors"
               onClick={() => router.push('/search')}
               aria-label="Tìm kiếm"
@@ -194,14 +341,40 @@ export default function Header() {
               <Search className="h-6 w-6" />
             </button>
 
+            {/* Nút chuyển đổi theme */}
+            <div className="relative">
+              <button
+                className="p-2 rounded-full hover:bg-base-200 transition-colors overflow-hidden"
+                onClick={toggleTheme}
+                aria-label={theme === 'light' ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
+              >
+                <div className="relative w-6 h-6">
+                  <Sun
+                    className={`absolute h-6 w-6 transition-all duration-300 ${
+                      theme === 'dark'
+                        ? 'opacity-100 transform rotate-0'
+                        : 'opacity-0 transform rotate-90'
+                    }`}
+                  />
+                  <Moon
+                    className={`absolute h-6 w-6 transition-all duration-300 ${
+                      theme === 'light'
+                        ? 'opacity-100 transform rotate-0'
+                        : 'opacity-0 transform -rotate-90'
+                    }`}
+                  />
+                </div>
+              </button>
+            </div>
+
             {/* Giỏ hàng */}
-            <div 
-              className="relative" 
+            <div
+              className="relative"
               onMouseEnter={handleCartMouseEnter}
               onMouseLeave={handleCartMouseLeave}
             >
-              <Link 
-                href="/cart" 
+              <Link
+                href="/cart"
                 className="relative block p-2 rounded-full hover:bg-base-200 transition-colors"
                 aria-label="Giỏ hàng"
               >
@@ -212,16 +385,16 @@ export default function Header() {
                   </span>
                 )}
               </Link>
-              
+
               {status === 'authenticated' && (
-                <div 
+                <div
                   className="relative"
                   onMouseEnter={handleMiniCartMouseEnter}
                   onMouseLeave={handleMiniCartMouseLeave}
                 >
-                  <MiniCart 
-                    isOpen={isMiniCartOpen && cartCount > 0} 
-                    onClose={() => setIsMiniCartOpen(false)} 
+                  <MiniCart
+                    isOpen={isMiniCartOpen && cartCount > 0}
+                    onClose={() => setIsMiniCartOpen(false)}
                   />
                 </div>
               )}
@@ -229,8 +402,8 @@ export default function Header() {
 
             {/* Wishlist button - shown when logged in */}
             {status === 'authenticated' && (
-              <Link 
-                href="/profile?tab=wishlist" 
+              <Link
+                href="/profile?tab=wishlist"
                 className="btn btn-ghost btn-circle relative"
                 aria-label="Yêu thích"
               >
@@ -243,16 +416,16 @@ export default function Header() {
             {/* Đăng nhập/Tài khoản */}
             {session ? (
               <div className="relative group">
-                <button 
+                <button
                   className="flex items-center space-x-1 p-2 rounded-full hover:bg-base-200 transition-colors"
                   aria-label="Tài khoản"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-colors">
                     {session.user?.image && isValidURL(session.user.image) ? (
-                      <Image 
+                      <Image
                         loader={customImageLoader}
-                        src={session.user.image} 
-                        alt={session.user?.name || 'User'} 
+                        src={session.user.image}
+                        alt={session.user?.name || 'User'}
                         width={32}
                         height={32}
                         className="w-full h-full object-cover"
@@ -276,8 +449,8 @@ export default function Header() {
                       <p className="text-xs text-base-content/70 truncate">{session.user?.email}</p>
                     </div>
                     <div className="h-px bg-base-content/10 my-1"></div>
-                    <Link 
-                      href="/profile" 
+                    <Link
+                      href="/profile"
                       className="flex items-center px-4 py-2 text-sm hover:bg-base-200 rounded-lg transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-base-content/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -285,8 +458,8 @@ export default function Header() {
                       </svg>
                       Hồ sơ
                     </Link>
-                    <Link 
-                      href="/profile/orders" 
+                    <Link
+                      href="/profile/orders"
                       className="flex items-center px-4 py-2 text-sm hover:bg-base-200 rounded-lg transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-base-content/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -295,8 +468,8 @@ export default function Header() {
                       Đơn hàng
                     </Link>
                     {session.user?.role === 'ADMIN' && (
-                      <Link 
-                        href="/admin" 
+                      <Link
+                        href="/admin"
                         className="flex items-center px-4 py-2 text-sm hover:bg-base-200 rounded-lg transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-base-content/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -307,8 +480,8 @@ export default function Header() {
                       </Link>
                     )}
                     <div className="h-px bg-base-content/10 my-1"></div>
-                    <button 
-                      onClick={() => signOut()} 
+                    <button
+                      onClick={() => signOut()}
                       className="flex w-full items-center px-4 py-2 text-sm text-error hover:bg-error/10 rounded-lg transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -321,14 +494,14 @@ export default function Header() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link 
-                  href="/login" 
+                <Link
+                  href="/login"
                   className="hidden md:inline-flex items-center px-4 py-2 border border-primary/20 hover:border-primary rounded-full text-sm font-medium transition-colors"
                 >
                   Đăng nhập
                 </Link>
-                <Link 
-                  href="/register" 
+                <Link
+                  href="/register"
                   className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary-focus text-primary-content rounded-full text-sm font-medium transition-colors"
                 >
                   <span className="hidden md:inline">Đăng ký</span>
@@ -343,11 +516,11 @@ export default function Header() {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Menu"
             >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-6 w-6" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 {isMobileMenuOpen ? (
@@ -364,7 +537,7 @@ export default function Header() {
         <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
           <div className="py-2 space-y-1 border-t border-base-content/10">
             <div className="pb-2">
-              <SearchField 
+              <SearchField
                 size="sm"
                 className="w-full"
                 placeholder="Tìm kiếm sản phẩm..."
@@ -377,26 +550,79 @@ export default function Header() {
               />
             </div>
 
-            {['products', 'categories', 'about'].map((item) => (
-              <Link 
-                key={item} 
-                href={`/${item}`}
-                className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  isActive(`/${item}`) 
-                    ? 'bg-primary/10 text-primary' 
-                    : 'hover:bg-base-200'
+            {/* Sản phẩm */}
+            <Link
+              href="/products"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                isActive('/products')
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-base-200'
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Sản phẩm
+            </Link>
+
+            {/* Danh mục với dropdown */}
+            <div className="px-4 py-1">
+              <button
+                className={`flex items-center justify-between w-full px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  isActive('/categories')
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-base-200'
                 }`}
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  fetchCategories();
+                  setIsCategoryMenuOpen(!isCategoryMenuOpen);
+                }}
               >
-                {item === 'products' ? 'Sản phẩm' : 
-                 item === 'categories' ? 'Danh mục' : 
-                 item === 'about' ? 'Giới thiệu' : item}
-              </Link>
-            ))}
-            
+                <span>Danh mục</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown danh mục cho mobile */}
+              <div className={`overflow-hidden transition-all duration-300 ${isCategoryMenuOpen ? 'max-h-60 mt-2' : 'max-h-0'}`}>
+                {loadingCategories ? (
+                  <div className="flex justify-center py-4">
+                    <div className="loading loading-spinner loading-sm"></div>
+                  </div>
+                ) : categories.length === 0 ? (
+                  <div className="px-4 py-2 text-sm text-gray-500">Không có danh mục nào</div>
+                ) : (
+                  <div className="pl-4 space-y-1 max-h-60 overflow-y-auto">
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        className="flex w-full items-center px-4 py-2 text-sm hover:bg-base-200 rounded-lg transition-colors"
+                        onClick={() => {
+                          handleCategoryClick(category.id);
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Giới thiệu */}
+            <Link
+              href="/about"
+              className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                isActive('/about')
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-base-200'
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Giới thiệu
+            </Link>
+
             {/* Mobile wishlist link - when logged in */}
             {status === 'authenticated' && (
-              <Link 
+              <Link
                 href="/profile?tab=wishlist"
                 className="block px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:bg-base-200"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -409,9 +635,54 @@ export default function Header() {
                 </div>
               </Link>
             )}
+
+            {/* Nút chuyển đổi theme trên mobile */}
+            <button
+              className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:bg-base-200"
+              onClick={() => {
+                toggleTheme();
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center">
+                  {theme === 'light' ? (
+                    <>
+                      <Moon className="h-5 w-5 mr-2 text-base-content/70" />
+                      Chế độ tối
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="h-5 w-5 mr-2 text-base-content/70" />
+                      Chế độ sáng
+                    </>
+                  )}
+                </div>
+                <div className="relative inline-block w-10 align-middle select-none">
+                  <input
+                    type="checkbox"
+                    name="toggle"
+                    id="mobile-theme-toggle"
+                    className="sr-only peer"
+                    checked={theme === 'dark'}
+                    onChange={toggleTheme}
+                  />
+                  <label
+                    htmlFor="mobile-theme-toggle"
+                    className="block h-6 overflow-hidden rounded-full bg-base-300 cursor-pointer peer-checked:bg-primary/20"
+                  >
+                    <span
+                      className={`absolute top-0 left-0 block h-6 w-6 rounded-full transition-all duration-300 transform ${
+                        theme === 'dark' ? 'translate-x-4 bg-primary' : 'translate-x-0 bg-base-content/30'
+                      }`}
+                    ></span>
+                  </label>
+                </div>
+              </div>
+            </button>
           </div>
         </div>
       </div>
     </header>
   );
-} 
+}
