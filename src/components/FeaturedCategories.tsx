@@ -22,7 +22,7 @@ export default function FeaturedCategories() {
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const { data: session } = useSession();
-  
+
   const isAdmin = session?.user?.role === 'ADMIN';
 
   useEffect(() => {
@@ -31,20 +31,20 @@ export default function FeaturedCategories() {
         setLoading(true);
         console.log('Fetching featured categories...');
         const response = await fetch('/api/categories?featured=true');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch categories');
         }
-        
+
         let data = await response.json();
         console.log('Received featured categories:', data);
-        
+
         // Nếu không có danh mục nào, tạo danh mục mẫu
         if (!data || data.length === 0) {
           console.log('No featured categories found, creating fallback categories');
           data = getFallbackCategories();
         }
-        
+
         setCategories(data);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -69,7 +69,7 @@ export default function FeaturedCategories() {
       { id: 'audio', name: 'Âm thanh', description: 'Âm thanh sống động, chất lượng cao' },
       { id: 'accessory', name: 'Phụ kiện', description: 'Phụ kiện thông minh cho thiết bị của bạn' }
     ];
-    
+
     // Thêm hình ảnh và số lượng sản phẩm mẫu
     return defaultCategories.map(category => ({
       ...category,
@@ -131,7 +131,7 @@ export default function FeaturedCategories() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       className="my-12"
       initial="hidden"
       whileInView="visible"
@@ -145,16 +145,16 @@ export default function FeaturedCategories() {
         </h2>
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <Link 
-              href="/admin/categories" 
+            <Link
+              href="/admin/categories"
               className="text-gray-500 hover:text-gray-700 transition-colors"
               title="Quản lý danh mục"
             >
               <Settings className="h-5 w-5" />
             </Link>
           )}
-          <Link 
-            href="/categories" 
+          <Link
+            href="/categories"
             className="text-primary-600 inline-flex items-center gap-1 font-medium hover:underline transition-colors"
           >
             Xem tất cả <ArrowRight className="h-4 w-4" />
@@ -170,8 +170,9 @@ export default function FeaturedCategories() {
             className="group"
           >
             <Link
-              href={`/products?category=${category.id}`}
+              href={`/products?category=${encodeURIComponent(category.id)}&page=1`}
               className="block rounded-xl bg-gradient-to-b from-white to-gray-50 shadow-sm hover:shadow-md border border-gray-200 overflow-hidden transition-all duration-300 h-full"
+              prefetch={false}
             >
               <div className="relative w-full h-40 bg-gray-50 overflow-hidden">
                 {/* Chỉ hiển thị Image component khi có URL và chưa gặp lỗi */}
@@ -207,4 +208,4 @@ export default function FeaturedCategories() {
       </div>
     </motion.div>
   );
-} 
+}

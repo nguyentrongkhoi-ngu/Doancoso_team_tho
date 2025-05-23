@@ -10,6 +10,7 @@ import { Toaster } from 'react-hot-toast';
 import CartProvider from "@/context/CartProvider";
 import { SearchProvider } from "@/context/SearchContext";
 import { ProductProvider } from "@/context/ProductContext";
+import { ThemeProvider } from "@/context/ThemeProvider";
 import ChatBoxWrapper from "@/components/ChatBoxWrapper";
 
 // Định nghĩa font chữ chính
@@ -39,24 +40,26 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions);
 
   return (
-    <html lang="vi" data-theme="light" className={`${poppins.variable} ${inter.variable}`}>
+    <html lang="vi" className={`${poppins.variable} ${inter.variable}`}>
       <body className={`font-sans antialiased text-base-content bg-base-100/30`}>
         <SessionProvider session={session}>
-          <CartProvider>
-            <SearchProvider>
-              <ProductProvider>
-                <div className="flex flex-col min-h-screen">
-                  <Header />
-                  <main className="flex-grow pt-32 pb-16">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-                <ChatBoxWrapper />
-                <Toaster position="top-right" />
-              </ProductProvider>
-            </SearchProvider>
-          </CartProvider>
+          <ThemeProvider>
+            <CartProvider>
+              <SearchProvider>
+                <ProductProvider>
+                  <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow pt-32 pb-16">
+                      {children}
+                    </main>
+                    <Footer />
+                  </div>
+                  <ChatBoxWrapper />
+                  <Toaster position="top-right" />
+                </ProductProvider>
+              </SearchProvider>
+            </CartProvider>
+          </ThemeProvider>
         </SessionProvider>
       </body>
     </html>

@@ -116,18 +116,32 @@ export default {
           "error": "#EF4444",
         },
         dark: {
-          "primary": "#4F46E5",
-          "secondary": "#EC4899",
-          "accent": "#8B5CF6", 
-          "neutral": "#1F2937",
-          "base-100": "#1F2937",
-          "base-content": "#F9FAFB",
-          "info": "#3B82F6",
-          "success": "#10B981",
-          "warning": "#F59E0B",
-          "error": "#EF4444",
+          "primary": "#6366F1",          // Indigo-500 (sáng hơn một chút so với light theme)
+          "primary-focus": "#4F46E5",    // Indigo-600
+          "primary-content": "#F9FAFB",  // Gray-50
+          "secondary": "#F472B6",        // Pink-400 (sáng hơn một chút so với light theme)
+          "secondary-focus": "#EC4899",  // Pink-500
+          "secondary-content": "#F9FAFB",// Gray-50
+          "accent": "#A78BFA",           // Violet-400 (sáng hơn một chút so với light theme)
+          "accent-focus": "#8B5CF6",     // Violet-500
+          "accent-content": "#F9FAFB",   // Gray-50
+          "neutral": "#374151",          // Gray-700
+          "neutral-focus": "#1F2937",    // Gray-800
+          "neutral-content": "#F9FAFB",  // Gray-50
+          "base-100": "#1E293B",         // Slate-800 (nền chính)
+          "base-200": "#0F172A",         // Slate-900 (nền tối hơn)
+          "base-300": "#020617",         // Slate-950 (nền tối nhất)
+          "base-content": "#F1F5F9",     // Slate-100 (văn bản chính)
+          "info": "#60A5FA",             // Blue-400 (sáng hơn một chút so với light theme)
+          "info-content": "#F9FAFB",     // Gray-50
+          "success": "#34D399",          // Emerald-400 (sáng hơn một chút so với light theme)
+          "success-content": "#F9FAFB",  // Gray-50
+          "warning": "#FBBF24",          // Amber-400 (sáng hơn một chút so với light theme)
+          "warning-content": "#1F2937",  // Gray-800
+          "error": "#F87171",            // Red-400 (sáng hơn một chút so với light theme)
+          "error-content": "#F9FAFB",    // Gray-50
         },
       },
     ],
   },
-} 
+}
