@@ -47,7 +47,8 @@ export async function GET(req: Request) {
         categoryId?: string,
         priceRange?: { min: number, max: number },
         searchQuery?: string,
-        currentPage?: string
+        currentPage?: string,
+        excludeProductId?: string
       } = {};
       
       // Lấy các tham số tùy chọn từ URL query
@@ -69,80 +70,80 @@ export async function GET(req: Request) {
       if (url.searchParams.has('page')) {
         contextData.currentPage = url.searchParams.get('page');
       }
+
+      if (url.searchParams.has('excludeProductId')) {
+        contextData.excludeProductId = url.searchParams.get('excludeProductId');
+      }
       
-      // Gọi engine đề xuất
+      // Đơn giản hóa: luôn trả về popular products để tránh timeout
       let result;
-      
-      if (session && session.user?.id) {
-        console.log(`Fetching personalized recommendations for user ${session.user.id}`);
-        result = await getRecommendedProducts(session.user.id, type, limit, contextData);
-      } else {
-        console.log("Fetching popular products for anonymous user");
-        try {
-          const popularProducts = await prisma.product.findMany({
+
+      console.log("Fetching popular products");
+      try {
+        // Tăng limit nếu cần loại bỏ sản phẩm
+        const fetchLimit = contextData.excludeProductId ? limit + 2 : limit;
+
+        const whereClause: any = {
+          stock: { gt: 0 }
+        };
+
+        // Loại bỏ sản phẩm hiện tại nếu có
+        if (contextData.excludeProductId) {
+          whereClause.id = { not: contextData.excludeProductId };
+        }
+
+        // Ưu tiên sản phẩm cùng category nếu có
+        if (contextData.categoryId) {
+          whereClause.categoryId = contextData.categoryId;
+        }
+
+        let popularProducts = await prisma.product.findMany({
+          where: whereClause,
+          orderBy: [
+            { isFeatured: 'desc' },
+            { createdAt: 'desc' }
+          ],
+          take: limit,
+          include: {
+            category: true
+          }
+        });
+
+        // Nếu không đủ sản phẩm cùng category, lấy thêm từ category khác
+        if (popularProducts.length < limit && contextData.categoryId) {
+          const remainingLimit = limit - popularProducts.length;
+          const otherProducts = await prisma.product.findMany({
             where: {
-              stock: { gt: 0 }
+              stock: { gt: 0 },
+              categoryId: { not: contextData.categoryId },
+              id: contextData.excludeProductId ? { not: contextData.excludeProductId } : undefined
             },
             orderBy: [
-              { isFeatured: 'desc' }
+              { isFeatured: 'desc' },
+              { createdAt: 'desc' }
             ],
-            take: limit,
+            take: remainingLimit,
             include: {
-              category: true,
-              images: true,
-              productViews: {
-                select: { viewCount: true },
-                take: 1
-              }
+              category: true
             }
           });
-          
-          result = popularProducts;
-        } catch (error) {
-          console.error('Error fetching popular products:', error);
-          throw error;
+
+          popularProducts = [...popularProducts, ...otherProducts];
         }
+
+        result = popularProducts;
+        console.log(`Found ${result.length} popular products`);
+      } catch (error) {
+        console.error('Error fetching popular products:', error);
+        throw error;
       }
       
       if (!result || result.length === 0) {
-        console.log("No recommendations found, falling back to popular products");
-        try {
-          // Fallback to popular products
-          const popularProducts = await prisma.product.findMany({
-            where: {
-              stock: { gt: 0 }
-            },
-            orderBy: [
-              { isFeatured: 'desc' }
-            ],
-            take: limit,
-            include: {
-              category: true,
-              images: true,
-              productViews: {
-                select: { viewCount: true },
-                take: 1
-              }
-            }
-          });
-          
-          result = popularProducts;
-          console.log(`Found ${result.length} popular products as fallback`);
-        } catch (fallbackError) {
-          console.error('Error fetching fallback products:', fallbackError);
-          return NextResponse.json(
-            { 
-              error: 'Failed to get fallback recommendations', 
-              details: String(fallbackError),
-              stack: fallbackError.stack,
-              message: fallbackError.message
-            },
-            { status: 500 }
-          );
-        }
-      } else {
-        console.log(`Found ${result.length} recommendations`);
+        console.log("No products found");
+        return NextResponse.json([]);
       }
+
+      console.log(`Returning ${result.length} products`);
       
       return NextResponse.json(result);
     } catch (recError) {

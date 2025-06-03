@@ -8,13 +8,13 @@ import Image from 'next/image';
 import AvatarPlaceholder from './AvatarPlaceholder';
 import { isValidURL, customImageLoader } from '@/lib/imageLoader';
 import SearchField from './SearchField';
-import { ShoppingBag, Search, X, ChevronDown, Sun, Moon } from 'lucide-react';
+import { ShoppingBag, Search, X } from 'lucide-react';
 import MiniCart from './MiniCart';
 import { useCart } from '@/context/CartProvider';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchContext } from '@/context/SearchContext';
-import { useTheme } from '@/context/ThemeProvider';
-import axios from 'axios';
+import { useCategories } from '@/context/CategoriesContext';
+import ThemeToggle from './ThemeToggle';
 
 export default function Header() {
   const { data: session, status } = useSession();
@@ -22,18 +22,25 @@ export default function Header() {
   const pathname = usePathname();
   const { cartCount } = useCart();
   const { searchTerm, clearSearch, isSearching, executeSearch } = useSearchContext();
-  const { theme, toggleTheme } = useTheme();
+  const { categories, loading: categoriesLoading } = useCategories();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMiniCartOpen, setIsMiniCartOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [currentOrigin, setCurrentOrigin] = useState('');
   const miniCartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const categoryMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const categoryMenuRef = useRef<HTMLDivElement>(null);
+  const categoriesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+
+
+  // Lấy current origin để sử dụng trong signOut
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentOrigin(window.location.origin);
+    }
+  }, []);
 
   // Thêm hiệu ứng thay đổi header khi cuộn
   useEffect(() => {
@@ -61,6 +68,21 @@ export default function Header() {
   const handleCartMouseLeave = () => {
     miniCartTimeoutRef.current = setTimeout(() => {
       setIsMiniCartOpen(false);
+    }, 300);
+  };
+
+  // Xử lý hiển thị dropdown danh mục với delay
+  const handleCategoriesMouseEnter = () => {
+    if (categoriesTimeoutRef.current) {
+      clearTimeout(categoriesTimeoutRef.current);
+      categoriesTimeoutRef.current = null;
+    }
+    setIsCategoriesOpen(true);
+  };
+
+  const handleCategoriesMouseLeave = () => {
+    categoriesTimeoutRef.current = setTimeout(() => {
+      setIsCategoriesOpen(false);
     }, 300);
   };
 
@@ -116,83 +138,6 @@ export default function Header() {
     clearSearch();
   }, [clearSearch]);
 
-  // Lấy danh sách danh mục
-  const fetchCategories = useCallback(async () => {
-    if (categories.length > 0) return; // Đã có dữ liệu rồi
-
-    try {
-      setLoadingCategories(true);
-      const response = await axios.get('/api/categories');
-      setCategories(response.data);
-    } catch (error) {
-      console.error('Lỗi khi lấy danh sách danh mục:', error);
-    } finally {
-      setLoadingCategories(false);
-    }
-  }, [categories.length]);
-
-  // Xử lý khi hover vào nút danh mục
-  const handleCategoryMouseEnter = () => {
-    fetchCategories();
-    setIsCategoryMenuOpen(true);
-  };
-
-  // Xử lý khi hover ra khỏi nút danh mục
-  const handleCategoryMouseLeave = () => {
-    // Sử dụng timeout để tránh đóng menu ngay lập tức
-    if (categoryMenuTimeoutRef.current) {
-      clearTimeout(categoryMenuTimeoutRef.current);
-    }
-    categoryMenuTimeoutRef.current = setTimeout(() => {
-      setIsCategoryMenuOpen(false);
-    }, 300); // Thời gian trễ dài hơn để người dùng có thể di chuột xuống menu
-  };
-
-  // Xử lý khi di chuột vào dropdown menu
-  const handleCategoryMenuMouseEnter = () => {
-    // Hủy timeout đóng menu nếu có
-    if (categoryMenuTimeoutRef.current) {
-      clearTimeout(categoryMenuTimeoutRef.current);
-    }
-  };
-
-  // Xử lý khi click vào nút danh mục
-  const handleCategoryButtonClick = () => {
-    fetchCategories();
-    setIsCategoryMenuOpen(!isCategoryMenuOpen);
-  };
-
-  // Xử lý khi chọn danh mục
-  const handleCategoryClick = (categoryId: string) => {
-    console.log('handleCategoryClick called with categoryId:', categoryId);
-    setIsCategoryMenuOpen(false);
-
-    // Luôn chuyển hướng đến trang products với tham số category
-    // Sử dụng router.push để đảm bảo trang được tải lại hoàn toàn
-    router.push(`/products?category=${encodeURIComponent(categoryId)}&page=1`);
-
-    // Log để debug
-    console.log(`Redirecting to /products?category=${encodeURIComponent(categoryId)}&page=1`);
-  };
-
-  // Xử lý click bên ngoài dropdown menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
-        setIsCategoryMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      // Dọn dẹp timeout khi component unmount
-      if (categoryMenuTimeoutRef.current) {
-        clearTimeout(categoryMenuTimeoutRef.current);
-      }
-    };
-  }, []);
-
   return (
     <header className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-base-100/95 backdrop-blur-md shadow-md py-2' : 'bg-base-100 py-4'}`}>
       <div className="container mx-auto px-4">
@@ -207,7 +152,6 @@ export default function Header() {
 
             {/* Menu Desktop */}
             <nav className="hidden md:flex ml-10 space-x-1">
-              {/* Sản phẩm */}
               <Link
                 href="/products"
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -219,61 +163,87 @@ export default function Header() {
                 Sản phẩm
               </Link>
 
-              {/* Danh mục với dropdown */}
+              {/* Dropdown Danh mục */}
               <div
                 className="relative"
-                ref={categoryMenuRef}
+                onMouseEnter={handleCategoriesMouseEnter}
+                onMouseLeave={handleCategoriesMouseLeave}
               >
-                <button
+                <Link
+                  href="/categories"
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
                     isActive('/categories')
                       ? 'bg-primary/10 text-primary'
                       : 'hover:bg-base-200'
                   }`}
-                  onClick={handleCategoryButtonClick}
-                  onMouseEnter={handleCategoryMouseEnter}
-                  onMouseLeave={handleCategoryMouseLeave}
                 >
                   Danh mục
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Dropdown menu cho danh mục */}
-                {isCategoryMenuOpen && (
-                  <div
-                    className="absolute left-0 mt-2 w-56 rounded-xl bg-base-100 shadow-lg ring-1 ring-black/5 z-50"
-                    onMouseEnter={handleCategoryMenuMouseEnter}
-                    onMouseLeave={handleCategoryMouseLeave}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 transition-transform ${isCategoriesOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    {/* Vùng kết nối giữa nút và dropdown để dễ di chuột */}
-                    <div className="absolute h-2 w-full -top-2"></div>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </Link>
 
-                    <div className="p-2">
-                      {loadingCategories ? (
-                        <div className="flex justify-center py-4">
-                          <div className="loading loading-spinner loading-sm"></div>
-                        </div>
-                      ) : categories.length === 0 ? (
-                        <div className="px-4 py-2 text-sm text-gray-500">Không có danh mục nào</div>
-                      ) : (
-                        <div className="max-h-80 overflow-y-auto">
-                          {categories.map((category) => (
-                            <button
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {isCategoriesOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute top-full left-0 mt-2 w-80 bg-base-100 rounded-xl shadow-lg ring-1 ring-black/5 z-50"
+                    >
+                      <div className="p-4">
+                        <h3 className="text-sm font-semibold text-base-content/70 mb-3">Tất cả danh mục</h3>
+                        <div className="grid grid-cols-2 gap-2">
+                          {categories.map((category: any) => (
+                            <Link
                               key={category.id}
-                              className="flex w-full items-center px-4 py-2 text-sm hover:bg-base-200 rounded-lg transition-colors"
-                              onClick={() => handleCategoryClick(category.id)}
+                              href={`/products?category=${category.id}&page=1`}
+                              className="flex items-center p-3 rounded-lg hover:bg-base-200 transition-colors group"
+                              onClick={() => setIsCategoriesOpen(false)}
                             >
-                              {category.name}
-                            </button>
+                              {/* Bỏ hình ảnh minh họa cho danh mục */}
+                              <div>
+                                <div className="text-sm font-medium group-hover:text-primary transition-colors">
+                                  {category.name}
+                                </div>
+                              </div>
+                            </Link>
                           ))}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                        {categoriesLoading && (
+                          <div className="text-center py-8 text-base-content/60">
+                            <div className="loading loading-spinner loading-sm"></div>
+                            <div className="text-sm mt-2">Đang tải danh mục...</div>
+                          </div>
+                        )}
+                        {!categoriesLoading && categories.length === 0 && (
+                          <div className="text-center py-8 text-base-content/60">
+                            <div className="text-sm">Chưa có danh mục nào</div>
+                          </div>
+                        )}
+                        <div className="mt-4 pt-3 border-t border-base-content/10">
+                          <Link
+                            href="/products"
+                            className="block text-center text-sm text-primary hover:text-primary-focus font-medium"
+                            onClick={() => setIsCategoriesOpen(false)}
+                          >
+                            Xem tất cả danh mục →
+                          </Link>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* Giới thiệu */}
               <Link
                 href="/about"
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -341,32 +311,6 @@ export default function Header() {
               <Search className="h-6 w-6" />
             </button>
 
-            {/* Nút chuyển đổi theme */}
-            <div className="relative">
-              <button
-                className="p-2 rounded-full hover:bg-base-200 transition-colors overflow-hidden"
-                onClick={toggleTheme}
-                aria-label={theme === 'light' ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
-              >
-                <div className="relative w-6 h-6">
-                  <Sun
-                    className={`absolute h-6 w-6 transition-all duration-300 ${
-                      theme === 'dark'
-                        ? 'opacity-100 transform rotate-0'
-                        : 'opacity-0 transform rotate-90'
-                    }`}
-                  />
-                  <Moon
-                    className={`absolute h-6 w-6 transition-all duration-300 ${
-                      theme === 'light'
-                        ? 'opacity-100 transform rotate-0'
-                        : 'opacity-0 transform -rotate-90'
-                    }`}
-                  />
-                </div>
-              </button>
-            </div>
-
             {/* Giỏ hàng */}
             <div
               className="relative"
@@ -399,6 +343,9 @@ export default function Header() {
                 </div>
               )}
             </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* Wishlist button - shown when logged in */}
             {status === 'authenticated' && (
@@ -481,7 +428,10 @@ export default function Header() {
                     )}
                     <div className="h-px bg-base-content/10 my-1"></div>
                     <button
-                      onClick={() => signOut()}
+                      onClick={async () => {
+                        await signOut({ redirect: false });
+                        window.location.href = currentOrigin || window.location.origin;
+                      }}
                       className="flex w-full items-center px-4 py-2 text-sm text-error hover:bg-error/10 rounded-lg transition-colors"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -550,7 +500,6 @@ export default function Header() {
               />
             </div>
 
-            {/* Sản phẩm */}
             <Link
               href="/products"
               className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
@@ -563,51 +512,46 @@ export default function Header() {
               Sản phẩm
             </Link>
 
-            {/* Danh mục với dropdown */}
-            <div className="px-4 py-1">
-              <button
-                className={`flex items-center justify-between w-full px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            {/* Mobile Categories with submenu */}
+            <div>
+              <Link
+                href="/categories"
+                className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   isActive('/categories')
                     ? 'bg-primary/10 text-primary'
-                    : 'bg-base-200'
+                    : 'hover:bg-base-200'
                 }`}
-                onClick={() => {
-                  fetchCategories();
-                  setIsCategoryMenuOpen(!isCategoryMenuOpen);
-                }}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
-                <span>Danh mục</span>
-                <ChevronDown className={`h-4 w-4 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
+                Danh mục
+              </Link>
 
-              {/* Dropdown danh mục cho mobile */}
-              <div className={`overflow-hidden transition-all duration-300 ${isCategoryMenuOpen ? 'max-h-60 mt-2' : 'max-h-0'}`}>
-                {loadingCategories ? (
-                  <div className="flex justify-center py-4">
-                    <div className="loading loading-spinner loading-sm"></div>
-                  </div>
-                ) : categories.length === 0 ? (
-                  <div className="px-4 py-2 text-sm text-gray-500">Không có danh mục nào</div>
-                ) : (
-                  <div className="pl-4 space-y-1 max-h-60 overflow-y-auto">
-                    {categories.map((category) => (
-                      <button
-                        key={category.id}
-                        className="flex w-full items-center px-4 py-2 text-sm hover:bg-base-200 rounded-lg transition-colors"
-                        onClick={() => {
-                          handleCategoryClick(category.id);
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Mobile categories list */}
+              {categories.length > 0 && (
+                <div className="ml-4 mt-2 space-y-1">
+                  {categories.slice(0, 6).map((category: any) => (
+                    <Link
+                      key={category.id}
+                      href={`/products?category=${category.id}&page=1`}
+                      className="block px-3 py-2 text-xs text-base-content/70 hover:text-primary hover:bg-base-200 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                  {categories.length > 6 && (
+                    <Link
+                      href="/products"
+                      className="block px-3 py-2 text-xs text-primary hover:bg-base-200 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Xem tất cả ({categories.length}) →
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Giới thiệu */}
             <Link
               href="/about"
               className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
@@ -635,51 +579,6 @@ export default function Header() {
                 </div>
               </Link>
             )}
-
-            {/* Nút chuyển đổi theme trên mobile */}
-            <button
-              className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors hover:bg-base-200"
-              onClick={() => {
-                toggleTheme();
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center">
-                  {theme === 'light' ? (
-                    <>
-                      <Moon className="h-5 w-5 mr-2 text-base-content/70" />
-                      Chế độ tối
-                    </>
-                  ) : (
-                    <>
-                      <Sun className="h-5 w-5 mr-2 text-base-content/70" />
-                      Chế độ sáng
-                    </>
-                  )}
-                </div>
-                <div className="relative inline-block w-10 align-middle select-none">
-                  <input
-                    type="checkbox"
-                    name="toggle"
-                    id="mobile-theme-toggle"
-                    className="sr-only peer"
-                    checked={theme === 'dark'}
-                    onChange={toggleTheme}
-                  />
-                  <label
-                    htmlFor="mobile-theme-toggle"
-                    className="block h-6 overflow-hidden rounded-full bg-base-300 cursor-pointer peer-checked:bg-primary/20"
-                  >
-                    <span
-                      className={`absolute top-0 left-0 block h-6 w-6 rounded-full transition-all duration-300 transform ${
-                        theme === 'dark' ? 'translate-x-4 bg-primary' : 'translate-x-0 bg-base-content/30'
-                      }`}
-                    ></span>
-                  </label>
-                </div>
-              </div>
-            </button>
           </div>
         </div>
       </div>

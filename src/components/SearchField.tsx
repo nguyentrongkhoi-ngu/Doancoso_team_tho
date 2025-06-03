@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, memo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import useSearch, { SearchFilters } from '@/hooks/useSearch';
 
 interface SearchFieldProps {
@@ -191,44 +191,38 @@ const SearchField = memo(({
   // Handle search form submission
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Huỷ bỏ timeout đang chạy
+
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
       updateTimeoutRef.current = null;
     }
-    
-    // Đảm bảo searchTerm được cập nhật trước khi thực hiện tìm kiếm
+
     setSearchTerm(inputValue);
-    
-    // Cập nhật giá trị searchTerm cuối cùng
     lastSearchTermRef.current = inputValue;
-    
+
     if (onSearch) {
       onSearch(inputValue, filters);
     } else {
       executeSearch(inputValue);
     }
+
     setShowSuggestions(false);
-    setIsUserTyping(false); // Reset trạng thái nhập liệu
+    setIsUserTyping(false);
   }, [onSearch, inputValue, filters, executeSearch, setSearchTerm, setIsUserTyping]);
 
   // Handle suggestion click
   const handleSuggestionClick = useCallback((suggestion: string) => {
-    // Đánh dấu không đang nhập liệu
     setIsUserTyping(false);
-    
     setInputValue(suggestion);
     setSearchTerm(suggestion);
-    
-    // Cập nhật giá trị searchTerm cuối cùng
     lastSearchTermRef.current = suggestion;
-    
+
     if (onSearch) {
       onSearch(suggestion, filters);
     } else {
       executeSearch(suggestion);
     }
+
     setShowSuggestions(false);
   }, [onSearch, filters, executeSearch, setSearchTerm, setIsUserTyping]);
 
@@ -240,36 +234,28 @@ const SearchField = memo(({
 
   // Handle clearing search input
   const handleClearSearch = useCallback(() => {
-    // Đánh dấu không đang nhập liệu
     setIsUserTyping(false);
-    
     setInputValue('');
     clearSearch();
-    
-    // Cập nhật giá trị searchTerm cuối cùng
     lastSearchTermRef.current = '';
-    
+
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, [clearSearch, setIsUserTyping]);
 
   // Highlight text based on search term
-  const highlightText = useCallback((text: string, query: string) => {
+  const highlightText = useCallback((text: string, query: string): React.ReactNode => {
     if (!query || query.trim() === '') return text;
-    
+
     try {
       // Escape special regex characters to avoid errors
       const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const parts = text.split(new RegExp(`(${safeQuery})`, 'gi'));
-      return (
-        <>
-          {parts.map((part, index) => 
-            part.toLowerCase() === query.toLowerCase() 
-              ? <span key={index} className="bg-yellow-200 dark:bg-yellow-800 text-black dark:text-white">{part}</span> 
-              : part
-          )}
-        </>
+      return parts.map((part, index) =>
+        part.toLowerCase() === query.toLowerCase()
+          ? <span key={index} className="bg-yellow-200 dark:bg-yellow-800 text-black dark:text-white">{part}</span>
+          : part
       );
     } catch (e) {
       return text;

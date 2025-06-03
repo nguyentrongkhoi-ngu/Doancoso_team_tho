@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Message } from '@/types/chat';
 import { chatSessions, chatHistory } from '../admin/chat-sessions/route';
+import { logger } from '@/lib/logger';
 
 // Interface cho thống kê chat
 interface ChatStats {
@@ -20,7 +21,7 @@ let chatStats: ChatStats = {
 
 // Các từ khóa cần theo dõi
 const TRACKED_KEYWORDS = [
-  'đơn hàng', 'vận chuyển', 'đổi trả', 'thanh toán', 'giá', 
+  'đơn hàng', 'vận chuyển', 'đổi trả', 'thanh toán', 'giá',
   'khuyến mãi', 'sản phẩm', 'liên hệ', 'bảo hành'
 ];
 
@@ -29,7 +30,7 @@ function updateStats(message: string) {
   chatStats.totalMessages++;
   chatStats.userMessages++;
   chatStats.lastUpdated = new Date();
-  
+
   // Đếm từ khóa phổ biến
   const lowerMessage = message.toLowerCase();
   TRACKED_KEYWORDS.forEach(keyword => {
@@ -43,7 +44,7 @@ function updateStats(message: string) {
 export async function POST(request: Request) {
   try {
     const { message, messages, sessionId } = await request.json();
-    
+
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
@@ -51,55 +52,44 @@ export async function POST(request: Request) {
     // Cập nhật thống kê
     updateStats(message);
 
-    // Log tin nhắn mới nhất
-    console.log('Chat message received:', message);
-    
-    // Log thống kê định kỳ (mỗi 10 tin nhắn)
+    // Log chat activity
+    logger.info('Chat message received', { message: message.substring(0, 100) });
+
+    // Log statistics periodically
     if (chatStats.totalMessages % 10 === 0) {
-      console.log('Chat statistics:', JSON.stringify(chatStats, null, 2));
+      logger.info('Chat statistics', chatStats);
     }
-    
+
     // Nếu có sessionId, cập nhật lịch sử chat và thông tin phiên chat
     if (sessionId) {
       // Tìm phiên chat
       const sessionIndex = chatSessions.findIndex(session => session.id === sessionId);
-      
+
       if (sessionIndex !== -1) {
         // Cập nhật thông tin phiên chat
         chatSessions[sessionIndex].lastMessage = message;
         chatSessions[sessionIndex].lastMessageTime = new Date();
         chatSessions[sessionIndex].messageCount = messages.length;
-        
+
         // Lưu tin nhắn vào lịch sử chat
         if (!chatHistory[sessionId]) {
           chatHistory[sessionId] = [];
         }
-        
+
         // Thêm tin nhắn người dùng
         chatHistory[sessionId].push({
           role: 'user',
           content: message,
           timestamp: new Date(),
         });
-        
-        // Thêm tin nhắn trả lời (sẽ được thêm sau khi người dùng nhận được phản hồi)
-        // Trong môi trường thực tế, bạn sẽ thêm tin nhắn trả lời từ AI hoặc nhân viên hỗ trợ
-        
-        // Trong môi trường thực tế, bạn sẽ lưu tin nhắn vào database
-        // await prisma.chatMessage.create({
-        //   data: {
-        //     content: message,
-        //     role: 'user',
-        //     timestamp: new Date(),
-        //     sessionId: sessionId,
-        //     userId: session?.user?.id // Nếu có xác thực người dùng
-        //   }
-        // });
+
+        // TODO: Implement AI response and database persistence
+        // In production, save to database using Prisma
       }
     }
-    
+
     // Trả về thành công
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       stats: {
         totalMessages: chatStats.totalMessages,
@@ -107,9 +97,14 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    console.error('Chat API Error:', error);
-    // Luôn trả về thành công để không làm gián đoạn trải nghiệm người dùng
-    return NextResponse.json({ success: true });
+    logger.error('Chat API Error', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to process chat message'
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -122,13 +117,13 @@ export async function GET() {
 function getMostCommonKeyword(): string {
   let maxCount = 0;
   let mostCommon = '';
-  
+
   Object.entries(chatStats.commonKeywords).forEach(([keyword, count]) => {
     if (count > maxCount) {
       maxCount = count;
       mostCommon = keyword;
     }
   });
-  
+
   return mostCommon;
-} 
+}

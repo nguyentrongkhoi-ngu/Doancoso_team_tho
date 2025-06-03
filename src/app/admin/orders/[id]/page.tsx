@@ -5,8 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
 import axios from 'axios';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import OrderPDF from '@/components/admin/reports/OrderPDF';
+// import dynamic from 'next/dynamic';
+
+// Dynamic import để tránh lỗi SSR với react-pdf - tạm thời disable
+// const OrderPDFDownloadButton = dynamic(
+//   () => import("@/components/admin/OrderPDFDownloadButton"),
+//   { ssr: false, loading: () => <div>Loading PDF...</div> }
+// );
 
 type OrderStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
 
@@ -224,15 +229,15 @@ export default function OrderDetailPage() {
             >
               Quay lại
             </button>
-            <PDFDownloadLink 
-              document={<OrderPDF order={order} />}
-              fileName={`don-hang-${order.id}.pdf`}
+            <button
+              onClick={() => {
+                // Tạm thời disable PDF export
+                alert('Tính năng xuất PDF đang được cập nhật. Vui lòng thử lại sau.');
+              }}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
             >
-              {({ loading }) => 
-                loading ? 'Đang tạo PDF...' : 'Xuất PDF'
-              }
-            </PDFDownloadLink>
+              Xuất PDF
+            </button>
           </div>
         </div>
 

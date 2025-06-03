@@ -6,7 +6,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --scroll-margin-top: 100px; /* Cho phần padding top khi có fixed header */
-
+  
   --border: 240 5.9% 90%;
   --input: 240 5.9% 90%;
   --ring: 240 5.9% 10%;
@@ -18,44 +18,6 @@
   --popover-foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
   --card-foreground: 240 10% 3.9%;
-
-  /* Theme transition */
-  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Theme variables */
-[data-theme="light"] {
-  --primary-rgb: 79, 70, 229;
-  --secondary-rgb: 236, 72, 153;
-  --accent-rgb: 139, 92, 246;
-
-  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-
-  --scrollbar-track: #f1f1f1;
-  --scrollbar-thumb: #c1c1c1;
-  --scrollbar-thumb-hover: #a1a1a1;
-}
-
-[data-theme="dark"] {
-  --primary-rgb: 99, 102, 241;
-  --secondary-rgb: 244, 114, 182;
-  --accent-rgb: 167, 139, 250;
-
-  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
-  --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
-
-  --glass-bg: rgba(15, 23, 42, 0.7);
-  --glass-border: rgba(30, 41, 59, 0.5);
-  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-
-  --scrollbar-track: #0f172a;
-  --scrollbar-thumb: #334155;
-  --scrollbar-thumb-hover: #475569;
 }
 
 @theme inline {
@@ -69,7 +31,7 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
-
+    
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
@@ -93,6 +55,12 @@ body {
   font-family: 'var(--font-poppins)', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for all elements */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Fix common layout issues */
@@ -363,22 +331,22 @@ p, ul, ol {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 6px;
+  background: #888;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
+  background: #555;
 }
 
 /* Custom selection */
 ::selection {
-  background-color: rgba(var(--primary-rgb), 0.2);
-  color: var(--foreground);
+  background-color: rgba(79, 70, 229, 0.2); /* primary with 20% opacity */
+  color: #1F2937; /* base-content color */
 }
 
 /* Custom container with responsive padding */
@@ -406,146 +374,24 @@ p, ul, ol {
 
 /* Card hover effect */
 .card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--card-shadow);
+  transition-property: all;
+  transition-duration: 300ms;
 }
 
 .card-hover:hover {
-  box-shadow: var(--card-hover-shadow);
+  --tw-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   transform: translateY(-0.25rem);
 }
 
 /* Glassmorphism effect */
 .glass-effect {
-  background-color: var(--glass-bg);
+  background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-}
-
-/* Dark mode specific enhancements */
-[data-theme="dark"] .card {
-  border-color: rgba(255, 255, 255, 0.05);
-}
-
-[data-theme="dark"] .glass-effect {
-  backdrop-filter: blur(16px);
-}
-
-/* Smooth transitions between themes */
-body,
-.card,
-.btn,
-.input,
-.dropdown,
-.modal,
-.navbar,
-.footer,
-.menu {
-  transition: var(--theme-transition);
-}
-
-/* Dark mode enhancements */
-[data-theme="dark"] {
-  /* Subtle gradient background for dark mode */
-  --dark-gradient: linear-gradient(to bottom right, #0f172a, #1e293b, #0f172a);
-}
-
-[data-theme="dark"] body {
-  background-image: var(--dark-gradient);
-  background-attachment: fixed;
-}
-
-/* Dark mode card enhancements */
-[data-theme="dark"] .card {
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Dark mode button glow effect */
-[data-theme="dark"] .btn-primary:hover {
-  box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.5);
-}
-
-[data-theme="dark"] .btn-secondary:hover {
-  box-shadow: 0 0 15px rgba(var(--secondary-rgb), 0.5);
-}
-
-/* Dark mode text shadow for headings */
-[data-theme="dark"] h1,
-[data-theme="dark"] h2,
-[data-theme="dark"] h3 {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* Dark mode image enhancement */
-[data-theme="dark"] img:not(.no-dark-filter) {
-  filter: brightness(0.95) contrast(1.05);
-}
-
-/* Theme transition effects */
-body {
-  transition: none;
-}
-
-.theme-transition-ready body,
-.theme-transition-ready .card,
-.theme-transition-ready .btn,
-.theme-transition-ready .navbar,
-.theme-transition-ready .footer,
-.theme-transition-ready .input,
-.theme-transition-ready .dropdown,
-.theme-transition-ready .modal,
-.theme-transition-ready img {
-  transition: var(--theme-transition);
-}
-
-.theme-changing {
-  transition: background-color 0.3s ease, color 0.3s ease !important;
-}
-
-/* Dark mode special effects */
-[data-theme="dark"] .gradient-text {
-  background-image: linear-gradient(to right, #6366F1, #A78BFA);
-}
-
-[data-theme="dark"] .btn-primary {
-  position: relative;
-  overflow: hidden;
-}
-
-[data-theme="dark"] .btn-primary::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: rotate(30deg);
-  animation: darkButtonShine 6s infinite linear;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-[data-theme="dark"] .btn-primary:hover::after {
-  opacity: 1;
-}
-
-@keyframes darkButtonShine {
-  from {
-    transform: translateX(-100%) rotate(30deg);
-  }
-  to {
-    transform: translateX(100%) rotate(30deg);
-  }
+  --tw-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
 /* Testimonials Section Styles */
@@ -759,4 +605,345 @@ body {
   padding-left: 1.75rem;
   padding-right: 1.75rem;
   transform: translateY(-2px);
+}
+
+/* Line clamp utilities for consistent text truncation */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Đảm bảo textarea hiển thị đúng với tiếng Việt */
+textarea {
+  font-family: var(--font-inter), 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  color: #374151 !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  font-feature-settings: "kern" 1, "liga" 1 !important;
+}
+
+/* Fix cho DaisyUI textarea */
+.textarea {
+  min-height: 3rem !important;
+  padding: 0.75rem !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  border-width: 2px !important;
+  border-style: solid !important;
+  border-color: #d1d5db !important;
+  border-radius: 0.5rem !important;
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  font-family: var(--font-inter), 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  font-feature-settings: "kern" 1, "liga" 1 !important;
+}
+
+.textarea:focus {
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+.textarea::placeholder {
+  color: #9ca3af !important;
+  font-style: normal !important;
+}
+
+/* Hỗ trợ IME cho tiếng Việt */
+.textarea {
+  ime-mode: auto !important;
+  -webkit-ime-mode: auto !important;
+  -moz-ime-mode: auto !important;
+  -ms-ime-mode: auto !important;
+}
+
+/* Đảm bảo composition text hiển thị đúng */
+.textarea:focus {
+  composition-mode: auto !important;
+}
+
+/* Fix cho Vietnamese diacritics */
+input, textarea {
+  unicode-bidi: normal !important;
+  direction: ltr !important;
+  /* Đảm bảo composition events hoạt động đúng */
+  -webkit-composition-fill-color: transparent !important;
+  -webkit-composition-frame-color: transparent !important;
+}
+
+/* Đảm bảo Vietnamese input methods hoạt động */
+.textarea {
+  /* Hỗ trợ composition events cho bộ gõ tiếng Việt */
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+
+  /* Đảm bảo text selection hoạt động đúng */
+  -webkit-touch-callout: default !important;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Dark mode specific styles */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #1F2937 !important;
+  color: #F9FAFB !important;
+}
+
+/* Dark mode text colors for better readability */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #FFFFFF !important;
+}
+
+.dark p, .dark span, .dark div, .dark label {
+  color: #F3F4F6 !important;
+}
+
+.dark .text-sm, .dark .text-xs {
+  color: #E5E7EB !important;
+}
+
+.dark .text-gray-500 {
+  color: #D1D5DB !important;
+}
+
+.dark .text-gray-600 {
+  color: #9CA3AF !important;
+}
+
+.dark .text-gray-700 {
+  color: #6B7280 !important;
+}
+
+.dark .text-gray-800 {
+  color: #4B5563 !important;
+}
+
+.dark .text-gray-900 {
+  color: #374151 !important;
+}
+
+/* Dark mode for base content */
+.dark .base-content {
+  color: #FFFFFF !important;
+}
+
+/* Dark mode for specific text elements */
+.dark .card-title {
+  color: #FFFFFF !important;
+}
+
+.dark .font-bold, .dark .font-semibold, .dark .font-medium {
+  color: #FFFFFF !important;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #6B7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+.dark ::selection {
+  background-color: rgba(99, 102, 241, 0.3);
+  color: #F9FAFB;
+}
+
+/* Dark mode glassmorphism */
+.dark .glass-effect {
+  background-color: rgba(55, 65, 81, 0.3);
+  backdrop-filter: blur(12px);
+}
+
+/* Dark mode card hover */
+.dark .card-hover:hover {
+  --tw-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode avatar glow */
+.dark .avatar-glow:hover {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.6);
+}
+
+/* Dark mode testimonial shine */
+.dark .testimonial-shine::before {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* Dark mode testimonial nav button */
+.dark .testimonial-nav-btn::after {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+/* Dark mode for cards and components */
+.dark .card {
+  background-color: #374151 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #4B5563 !important;
+}
+
+.dark .card-title {
+  color: #FFFFFF !important;
+}
+
+.dark .card-body {
+  color: #F3F4F6 !important;
+}
+
+.dark .card-body p {
+  color: #E5E7EB !important;
+}
+
+/* Dark mode for product cards specifically */
+.dark .bg-base-100 {
+  background-color: #374151 !important;
+}
+
+.dark .shadow-sm, .dark .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Dark mode for buttons */
+.dark .btn {
+  border-color: #4B5563 !important;
+}
+
+.dark .btn:not(.btn-primary):not(.btn-secondary):not(.btn-accent) {
+  background-color: #374151 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .btn:not(.btn-primary):not(.btn-secondary):not(.btn-accent):hover {
+  background-color: #4B5563 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .btn-primary {
+  background-color: #3B82F6 !important;
+  border-color: #3B82F6 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .btn-secondary {
+  background-color: #6B7280 !important;
+  border-color: #6B7280 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .btn-outline {
+  border-color: #9CA3AF !important;
+  color: #F3F4F6 !important;
+  background-color: transparent !important;
+}
+
+.dark .btn-outline:hover {
+  background-color: #6B7280 !important;
+  color: #FFFFFF !important;
+}
+
+/* Dark mode for inputs */
+.dark .input, .dark .textarea, .dark .select {
+  background-color: #374151 !important;
+  border-color: #4B5563 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .input::placeholder, .dark .textarea::placeholder {
+  color: #9CA3AF !important;
+}
+
+.dark .input:focus, .dark .textarea:focus, .dark .select:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Dark mode for badges */
+.dark .badge {
+  background-color: #4B5563 !important;
+  color: #F9FAFB !important;
+}
+
+.dark .badge-secondary {
+  background-color: #F472B6 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .badge-outline {
+  border-color: #F472B6 !important;
+  color: #F472B6 !important;
+  background-color: transparent !important;
+}
+
+/* Dark mode for navigation */
+.dark .navbar {
+  background-color: #1F2937 !important;
+}
+
+.dark .menu li > a {
+  color: #F3F4F6 !important;
+}
+
+.dark .menu li > a:hover {
+  background-color: #374151 !important;
+  color: #FFFFFF !important;
+}
+
+/* Dark mode for links */
+.dark a {
+  color: #60A5FA !important;
+}
+
+.dark a:hover {
+  color: #93C5FD !important;
+}
+
+/* Dark mode for price text */
+.dark .text-primary {
+  color: #60A5FA !important;
+}
+
+.dark .text-secondary {
+  color: #F472B6 !important;
+}
+
+/* Dark mode for product price */
+.dark .font-bold.text-lg, .dark .font-bold.text-xl {
+  color: #FFFFFF !important;
 }

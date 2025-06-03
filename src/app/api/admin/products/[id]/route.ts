@@ -102,6 +102,7 @@ async function updateProduct(
         if (data.price !== undefined) updateData.price = parseFloat(data.price);
         if (data.stock !== undefined) updateData.stock = parseInt(data.stock);
         if (data.categoryId) updateData.categoryId = data.categoryId;
+        if (data.brand !== undefined) updateData.brand = data.brand || null;
         if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
       }
     } else {
@@ -111,6 +112,7 @@ async function updateProduct(
       if (data.price !== undefined) updateData.price = parseFloat(data.price);
       if (data.stock !== undefined) updateData.stock = parseInt(data.stock);
       if (data.categoryId) updateData.categoryId = data.categoryId;
+      if (data.brand !== undefined) updateData.brand = data.brand || null;
       if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     }
     

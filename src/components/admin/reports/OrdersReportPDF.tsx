@@ -211,15 +211,15 @@ const OrdersReportPDF = ({
   };
 
   // Calculate summary statistics
-  const totalRevenue = orders
+  const totalRevenue = orders && orders.length > 0 ? orders
     .filter(order => order.status !== 'CANCELLED')
-    .reduce((sum, order) => sum + order.total, 0);
+    .reduce((sum, order) => sum + (order.total || 0), 0) : 0;
   
   const countByStatus = {
-    PENDING: orders.filter(order => order.status === 'PENDING').length,
-    PROCESSING: orders.filter(order => order.status === 'PROCESSING').length,
-    COMPLETED: orders.filter(order => order.status === 'COMPLETED').length,
-    CANCELLED: orders.filter(order => order.status === 'CANCELLED').length,
+    PENDING: orders && orders.length > 0 ? orders.filter(order => order.status === 'PENDING').length : 0,
+    PROCESSING: orders && orders.length > 0 ? orders.filter(order => order.status === 'PROCESSING').length : 0,
+    COMPLETED: orders && orders.length > 0 ? orders.filter(order => order.status === 'COMPLETED').length : 0,
+    CANCELLED: orders && orders.length > 0 ? orders.filter(order => order.status === 'CANCELLED').length : 0,
   };
 
   return (
@@ -272,23 +272,23 @@ const OrdersReportPDF = ({
           </View>
           
           {/* Table Body */}
-          {orders.map((order, i) => (
+          {orders && orders.length > 0 && orders.map((order, i) => (
             <View key={i} style={styles.tableRow}>
               <View style={[styles.tableCol, styles.id]}>
                 <Text style={styles.tableCell}>{order.id}</Text>
               </View>
               <View style={[styles.tableCol, styles.customer]}>
-                <Text style={styles.tableCell}>{order.customerName}</Text>
+                <Text style={styles.tableCell}>{order.customerName || 'N/A'}</Text>
                 <Text style={[styles.tableCell, { fontSize: 8, color: 'grey' }]}>
-                  {order.customerEmail}
+                  {order.customerEmail || 'N/A'}
                 </Text>
               </View>
               <View style={[styles.tableCol, styles.date]}>
-                <Text style={styles.tableCell}>{formatDate(order.createdAt)}</Text>
+                <Text style={styles.tableCell}>{order.createdAt ? formatDate(order.createdAt) : 'N/A'}</Text>
               </View>
               <View style={[styles.tableCol, styles.items]}>
                 <Text style={styles.tableCell}>
-                  {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                  {order.items && order.items.length > 0 ? order.items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0}
                 </Text>
               </View>
               <View style={[styles.tableCol, styles.status]}>
@@ -300,7 +300,7 @@ const OrdersReportPDF = ({
                 </Text>
               </View>
               <View style={[styles.tableCol, styles.total]}>
-                <Text style={styles.tableCell}>{formatPrice(order.total)}</Text>
+                <Text style={styles.tableCell}>{formatPrice(order.total || 0)}</Text>
               </View>
             </View>
           ))}

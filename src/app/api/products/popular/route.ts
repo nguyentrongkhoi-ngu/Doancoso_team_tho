@@ -9,19 +9,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '8', 10);
 
-    // Lấy các sản phẩm phổ biến nhất dựa trên số lượt xem
+    // Lấy các sản phẩm phổ biến nhất, ưu tiên featured products
     const popularProducts = await prisma.product.findMany({
       where: {
         stock: { gt: 0 } // Chỉ lấy sản phẩm còn hàng
       },
       orderBy: [
         {
-          productViews: {
-            _count: 'desc'
-          }
+          isFeatured: 'desc' // Ưu tiên sản phẩm featured
         },
         {
-          createdAt: 'desc' // Đảm bảo sản phẩm mới được ưu tiên nếu có cùng lượt xem
+          createdAt: 'desc' // Sau đó sắp xếp theo ngày tạo
         }
       ],
       take: limit,

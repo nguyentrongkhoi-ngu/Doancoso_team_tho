@@ -38,10 +38,10 @@ interface ProductCardProps {
 
 const WishlistCard = ({ product, onRemove, onAddToCart, rating }: WishlistCardProps) => {
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-300 hover:shadow-md transition-shadow">
-      <figure className="h-48 bg-base-200">
+    <div className="card bg-base-100 shadow-sm border border-base-300 hover:shadow-md transition-shadow h-full flex flex-col">
+      <figure className="h-48 bg-base-200 flex-shrink-0 relative">
         {product.imageUrl && isValidURL(product.imageUrl) ? (
-          <Image 
+          <Image
             loader={customImageLoader}
             src={product.imageUrl}
             alt={product.name}
@@ -57,23 +57,30 @@ const WishlistCard = ({ product, onRemove, onAddToCart, rating }: WishlistCardPr
             </svg>
           </div>
         )}
+
+        {/* Stock badge */}
+        {product.stock < 10 && product.stock > 0 && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+            Sắp hết
+          </div>
+        )}
       </figure>
-      <div className="card-body p-4">
-        <h2 className="card-title text-base">{product.name}</h2>
-        <p className="text-primary font-semibold">
-          {new Intl.NumberFormat('vi-VN', { 
-            style: 'currency', 
-            currency: 'VND' 
+      <div className="card-body p-4 flex-grow flex flex-col">
+        <h2 className="card-title text-base line-clamp-2 min-h-[3rem]">{product.name}</h2>
+        <p className="text-primary font-semibold mt-2">
+          {new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
           }).format(product.price)}
         </p>
-        <div className="flex justify-between items-center mt-2">
-          <button 
+        <div className="flex justify-between items-center mt-auto">
+          <button
             onClick={onAddToCart}
             className="btn btn-sm btn-primary"
           >
             Thêm vào giỏ
           </button>
-          <button 
+          <button
             onClick={onRemove}
             className="btn btn-sm btn-circle btn-ghost"
           >
@@ -89,10 +96,10 @@ const WishlistCard = ({ product, onRemove, onAddToCart, rating }: WishlistCardPr
 
 const ProductCard = ({ product, onAddToWishlist, inWishlist }: ProductCardProps) => {
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-300 hover:shadow-md transition-shadow">
-      <figure className="h-48 bg-base-200">
+    <div className="card bg-base-100 shadow-sm border border-base-300 hover:shadow-md transition-shadow h-full flex flex-col">
+      <figure className="h-48 bg-base-200 flex-shrink-0 relative">
         {product.imageUrl && isValidURL(product.imageUrl) ? (
-          <Image 
+          <Image
             loader={customImageLoader}
             src={product.imageUrl}
             alt={product.name}
@@ -108,16 +115,23 @@ const ProductCard = ({ product, onAddToWishlist, inWishlist }: ProductCardProps)
             </svg>
           </div>
         )}
+
+        {/* Stock badge */}
+        {product.stock < 10 && product.stock > 0 && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+            Sắp hết
+          </div>
+        )}
       </figure>
-      <div className="card-body p-4">
-        <h2 className="card-title text-base">{product.name}</h2>
-        <p className="text-primary font-semibold">
-          {new Intl.NumberFormat('vi-VN', { 
-            style: 'currency', 
-            currency: 'VND' 
+      <div className="card-body p-4 flex-grow flex flex-col">
+        <h2 className="card-title text-base line-clamp-2 min-h-[3rem]">{product.name}</h2>
+        <p className="text-primary font-semibold mt-2">
+          {new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
           }).format(product.price)}
         </p>
-        <div className="card-actions justify-end mt-2">
+        <div className="card-actions justify-end mt-auto">
           <Link href={`/products/${product.id}`} className="btn btn-sm btn-outline">
             Xem chi tiết
           </Link>
@@ -269,10 +283,10 @@ export default function WishlistSection({ onError, isStandalonePage = false }: W
             <h3 className="text-xl font-semibold">Gợi ý cho bạn</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {recommendedProducts.slice(0, 3).map((product) => (
-                <div key={product.id} className="card bg-base-100 shadow-sm border border-base-300 hover:shadow-md transition-shadow">
-                  <figure className="h-48 bg-base-200">
+                <div key={product.id} className="card bg-base-100 shadow-sm border border-base-300 hover:shadow-md transition-shadow h-full flex flex-col">
+                  <figure className="h-48 bg-base-200 flex-shrink-0 relative">
                     {product.imageUrl && isValidURL(product.imageUrl) ? (
-                      <Image 
+                      <Image
                         loader={customImageLoader}
                         src={product.imageUrl}
                         alt={product.name}
@@ -288,16 +302,23 @@ export default function WishlistSection({ onError, isStandalonePage = false }: W
                         </svg>
                       </div>
                     )}
+
+                    {/* Stock badge */}
+                    {product.stock < 10 && product.stock > 0 && (
+                      <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                        Sắp hết
+                      </div>
+                    )}
                   </figure>
-                  <div className="card-body p-4">
-                    <h2 className="card-title text-base">{product.name}</h2>
-                    <p className="text-primary font-semibold">
-                      {new Intl.NumberFormat('vi-VN', { 
-                        style: 'currency', 
-                        currency: 'VND' 
+                  <div className="card-body p-4 flex-grow flex flex-col">
+                    <h2 className="card-title text-base line-clamp-2 min-h-[3rem]">{product.name}</h2>
+                    <p className="text-primary font-semibold mt-2">
+                      {new Intl.NumberFormat('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND'
                       }).format(product.price)}
                     </p>
-                    <div className="card-actions justify-end mt-2">
+                    <div className="card-actions justify-end mt-auto">
                       <Link href={`/products/${product.id}`} className="btn btn-sm btn-outline">
                         Xem chi tiết
                       </Link>

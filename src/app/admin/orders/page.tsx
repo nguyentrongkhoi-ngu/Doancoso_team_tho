@@ -4,8 +4,13 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import OrdersReportPDF from "@/components/admin/reports/OrdersReportPDF";
+// import dynamic from 'next/dynamic';
+
+// Dynamic import để tránh lỗi SSR với react-pdf - tạm thời disable
+// const PDFDownloadButton = dynamic(
+//   () => import("@/components/admin/PDFDownloadButton"),
+//   { ssr: false, loading: () => <div>Loading PDF...</div> }
+// );
 
 type OrderStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED' | 'ALL';
 
@@ -273,22 +278,17 @@ export default function AdminOrdersPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Quản Lý Đơn Hàng</h1>
           
-          <PDFDownloadLink 
-            document={
-              <OrdersReportPDF 
-                orders={filteredOrders}
-                fromDate={dateRange.startDate ? new Date(dateRange.startDate) : undefined}
-                toDate={dateRange.endDate ? new Date(dateRange.endDate) : undefined}
-                statusFilter={statusFilter !== 'ALL' ? statusFilter : undefined}
-              />
-            }
-            fileName="bao-cao-don-hang.pdf"
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-          >
-            {({ loading }) => 
-              loading ? 'Đang tạo PDF...' : 'Xuất báo cáo (PDF)'
-            }
-          </PDFDownloadLink>
+          {filteredOrders && filteredOrders.length > 0 && (
+            <button
+              onClick={() => {
+                // Tạm thời disable PDF export
+                alert('Tính năng xuất PDF đang được cập nhật. Vui lòng thử lại sau.');
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+            >
+              Xuất báo cáo (PDF)
+            </button>
+          )}
         </div>
 
         {/* Bộ lọc và tìm kiếm */}

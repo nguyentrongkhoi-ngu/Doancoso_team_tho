@@ -37,22 +37,24 @@ async function main() {
 
     // Tạo các danh mục sản phẩm
     const categories = [
-      { id: 'smartphone', name: 'Điện thoại' },
-      { id: 'laptop', name: 'Laptop' },
-      { id: 'tablet', name: 'Máy tính bảng' },
-      { id: 'wearable', name: 'Thiết bị đeo' },
-      { id: 'audio', name: 'Âm thanh' },
-      { id: 'camera', name: 'Máy ảnh' },
-      { id: 'gaming', name: 'Gaming' },
+      { name: 'Điện thoại' },
+      { name: 'Laptop' },
+      { name: 'Máy tính bảng' },
+      { name: 'Thiết bị đeo' },
+      { name: 'Âm thanh' },
+      { name: 'Máy ảnh' },
+      { name: 'Gaming' },
     ];
 
     // Create or update categories
+    const createdCategories: { [key: string]: string } = {};
     for (const category of categories) {
-      await prisma.category.upsert({
-        where: { id: category.id },
-        update: { name: category.name },
+      const result = await prisma.category.upsert({
+        where: { name: category.name },
+        update: {},
         create: category,
       });
+      createdCategories[category.name] = result.id;
       console.log(`Upserted category: ${category.name}`);
     }
 
@@ -65,7 +67,7 @@ async function main() {
         price: 29990000,
         stock: 50,
         imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484428d1?auto=format&fit=crop&q=80&w=800',
-        categoryId: 'smartphone',
+        categoryId: createdCategories['Điện thoại'],
       },
       {
         name: 'Samsung Galaxy S24 Ultra',
@@ -73,7 +75,7 @@ async function main() {
         price: 28990000,
         stock: 40,
         imageUrl: 'https://images.unsplash.com/photo-1707412911484-7b0440f2830a?auto=format&fit=crop&q=80&w=800',
-        categoryId: 'smartphone',
+        categoryId: createdCategories['Điện thoại'],
       },
       {
         name: 'Xiaomi 14 Ultra',
@@ -81,7 +83,7 @@ async function main() {
         price: 18990000,
         stock: 60,
         imageUrl: 'https://images.unsplash.com/photo-1671920090611-9a40303b52cb?auto=format&fit=crop&q=80&w=800',
-        categoryId: 'smartphone',
+        categoryId: createdCategories['Điện thoại'],
       },
       // Laptop
       {
@@ -90,7 +92,7 @@ async function main() {
         price: 65990000,
         stock: 20,
         imageUrl: 'https://images.unsplash.com/photo-1628556270448-4d4e4769a38c?auto=format&fit=crop&q=80&w=800',
-        categoryId: 'laptop',
+        categoryId: createdCategories['Laptop'],
       },
       {
         name: 'Dell XPS 15 9530',
@@ -98,7 +100,7 @@ async function main() {
         price: 45990000,
         stock: 15,
         imageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&q=80&w=800',
-        categoryId: 'laptop',
+        categoryId: createdCategories['Laptop'],
       },
       {
         name: 'Asus ROG Zephyrus G14',
@@ -106,7 +108,7 @@ async function main() {
         price: 38990000,
         stock: 25,
         imageUrl: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=2070&auto=format&fit=crop',
-        categoryId: 'laptop',
+        categoryId: createdCategories['Laptop'],
       },
       // Máy tính bảng
       {
@@ -115,7 +117,7 @@ async function main() {
         price: 23990000,
         stock: 30,
         imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=2033&auto=format&fit=crop',
-        categoryId: 'tablet',
+        categoryId: createdCategories['Máy tính bảng'],
       },
       {
         name: 'Samsung Galaxy Tab S9 Ultra',
@@ -123,7 +125,7 @@ async function main() {
         price: 22990000,
         stock: 25,
         imageUrl: 'https://images.unsplash.com/photo-1581993192008-63e896f4f744?q=80&w=2073&auto=format&fit=crop',
-        categoryId: 'tablet',
+        categoryId: createdCategories['Máy tính bảng'],
       },
       // Thiết bị đeo
       {
@@ -132,7 +134,7 @@ async function main() {
         price: 10990000,
         stock: 45,
         imageUrl: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=2064&auto=format&fit=crop',
-        categoryId: 'wearable',
+        categoryId: createdCategories['Thiết bị đeo'],
       },
       {
         name: 'Samsung Galaxy Watch 6',
@@ -140,7 +142,7 @@ async function main() {
         price: 7990000,
         stock: 70,
         imageUrl: 'https://images.unsplash.com/photo-1617043786394-f977fa12eddf?q=80&w=1780&auto=format&fit=crop',
-        categoryId: 'wearable',
+        categoryId: createdCategories['Thiết bị đeo'],
       },
       // Âm thanh
       {
@@ -149,7 +151,7 @@ async function main() {
         price: 5990000,
         stock: 100,
         imageUrl: 'https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?q=80&w=2063&auto=format&fit=crop',
-        categoryId: 'audio',
+        categoryId: createdCategories['Âm thanh'],
       },
       {
         name: 'Sony WH-1000XM5',
@@ -157,7 +159,7 @@ async function main() {
         price: 8990000,
         stock: 55,
         imageUrl: 'https://images.unsplash.com/photo-1618066346137-23e4135702ab?q=80&w=2013&auto=format&fit=crop',
-        categoryId: 'audio',
+        categoryId: createdCategories['Âm thanh'],
       }
     ];
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
 // GET /api/products/[id]/reviews - Get all reviews for a product
@@ -58,6 +59,10 @@ export async function GET(
         page,
         limit
       }
+    }, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
     });
   } catch (error) {
     console.error('Error fetching reviews:', error);
@@ -75,7 +80,7 @@ export async function POST(
 ) {
   try {
     // Check authentication
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -85,7 +90,45 @@ export async function POST(
 
     const userId = session.user.id as string;
     const productId = params.id;
+
+    // Đảm bảo encoding UTF-8 đúng cách
     const { rating, comment } = await request.json();
+
+    // Normalize Unicode và làm sạch comment
+    let normalizedComment = '';
+    if (comment) {
+      // Đầu tiên normalize
+      normalizedComment = comment.normalize('NFC');
+
+      // Kiểm tra và sửa các ký tự bị lỗi encoding
+      if (/[�?]/.test(normalizedComment)) {
+        console.warn('Detected encoding issues in comment:', normalizedComment);
+        // Thay thế các pattern phổ biến
+        normalizedComment = normalizedComment
+          .replace(/T\?t/g, 'Tốt')
+          .replace(/Tuy\?t/g, 'Tuyệt')
+          .replace(/r\?t/g, 'rất')
+          .replace(/h\?i/g, 'hài')
+          .replace(/l\?ng/g, 'lòng')
+          .replace(/ch\?t/g, 'chất')
+          .replace(/l\?ng/g, 'lượng')
+          .replace(/d\?ch/g, 'dịch')
+          .replace(/v\?/g, 'vụ')
+          .replace(/\?c/g, 'ặc')
+          .replace(/bi\?t/g, 'biệt')
+          .replace(/m\?n/g, 'màn')
+          .replace(/h\?nh/g, 'hình')
+          .replace(/s\?c/g, 'sắc')
+          .replace(/n\?t/g, 'nét')
+          .replace(/\?m/g, 'âm')
+          .replace(/gi\?i/g, 'giới')
+          .replace(/thi\?u/g, 'thiệu')
+          .replace(/b\?n/g, 'bạn')
+          .replace(/b\?/g, 'bè');
+
+        console.log('Fixed comment:', normalizedComment);
+      }
+    }
 
     // Validate input
     if (!rating || rating < 1 || rating > 5) {
@@ -95,7 +138,7 @@ export async function POST(
       );
     }
 
-    if (!comment || comment.trim() === '') {
+    if (!normalizedComment || normalizedComment.trim() === '') {
       return NextResponse.json(
         { error: 'Comment is required' },
         { status: 400 }
@@ -128,7 +171,7 @@ export async function POST(
         where: { id: existingReview.id },
         data: {
           rating,
-          comment,
+          comment: normalizedComment,
         },
         include: {
           user: {
@@ -140,7 +183,11 @@ export async function POST(
         },
       });
 
-      return NextResponse.json(updatedReview);
+      return NextResponse.json(updatedReview, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
     } else {
       // Create new review
       const newReview = await prisma.review.create({
@@ -148,7 +195,7 @@ export async function POST(
           userId,
           productId,
           rating,
-          comment,
+          comment: normalizedComment,
         },
         include: {
           user: {
@@ -160,7 +207,12 @@ export async function POST(
         },
       });
 
-      return NextResponse.json(newReview, { status: 201 });
+      return NextResponse.json(newReview, {
+        status: 201,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
     }
   } catch (error) {
     console.error('Error creating review:', error);

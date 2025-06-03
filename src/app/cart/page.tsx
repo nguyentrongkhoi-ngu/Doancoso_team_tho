@@ -185,7 +185,7 @@ export default function CartPage() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ couponCode: couponCode.trim() }),
+        body: JSON.stringify({ couponCode: couponCode.trim().toUpperCase() }),
       });
       
       const data = await response.json();

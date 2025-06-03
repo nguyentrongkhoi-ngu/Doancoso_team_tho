@@ -41,6 +41,7 @@ export async function GET(
               order: 'asc',
             },
           },
+          productViews: true,
         },
       });
       
@@ -51,9 +52,19 @@ export async function GET(
           { status: 404 }
         );
       }
-      
-      console.log(`API: Đã tìm thấy sản phẩm ${product.name} (ID=${productId})`);
-      return NextResponse.json(product);
+
+      // Tính tổng số lượt xem
+      const totalViews = product.productViews.reduce((sum, view) => sum + view.viewCount, 0);
+
+      // Thêm totalViews vào response và loại bỏ productViews để không trả về dữ liệu nhạy cảm
+      const { productViews, ...productData } = product;
+      const productWithViews = {
+        ...productData,
+        totalViews
+      };
+
+      console.log(`API: Đã tìm thấy sản phẩm ${product.name} (ID=${productId}) với ${totalViews} lượt xem`);
+      return NextResponse.json(productWithViews);
     } catch (dbError) {
       // Xử lý lỗi Prisma cụ thể
       if (dbError instanceof Prisma.PrismaClientKnownRequestError) {

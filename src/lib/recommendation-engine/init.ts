@@ -3,10 +3,7 @@ import { trainModel } from './tf-prediction';
 
 let isInitialized = false;
 
-/**
- * Khởi tạo các tính năng gợi ý sản phẩm
- * Hàm này được gọi trong quá trình khởi động ứng dụng
- */
+
 export async function initRecommendationEngine() {
   if (isInitialized) {
     return; // Tránh khởi tạo nhiều lần
@@ -19,7 +16,7 @@ export async function initRecommendationEngine() {
     schedulePerformanceCalculation();
     console.log('Đã lên lịch tính toán hiệu suất gợi ý');
     
-    // Huấn luyện model TensorFlow nếu cần
+    
     try {
       const trained = await trainModel();
       if (trained) {

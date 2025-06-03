@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { ArrowRight, ArrowRightCircle, BadgePercent, Truck, CreditCard, RotateCcw, Clock4 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // Import các component với dynamic để tránh lỗi hydration
 const FeaturedProducts = dynamic(() => import('../components/FeaturedProducts'), {
@@ -130,7 +131,9 @@ const categories = [
 export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
   const [currentBanner, setCurrentBanner] = useState(0);
-  
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
     
@@ -140,6 +143,15 @@ export default function Home() {
     }, 6000);
     
     return () => clearInterval(bannerInterval);
+  }, []);
+
+  useEffect(() => {
+    if (searchParams && searchParams.get('payment') === 'success') {
+      setShowPaymentSuccess(true);
+      // Ẩn thông báo sau 5 giây
+      const timer = setTimeout(() => setShowPaymentSuccess(false), 5000);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   // Animation variants
@@ -160,6 +172,12 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4">
+      {showPaymentSuccess && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-success text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-fade-in">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+          <span>Thanh toán thành công! Hãy tiếp tục mua sắm.</span>
+        </div>
+      )}
       <ErrorBoundary fallback={<div>Đã xảy ra lỗi khi tải trang chủ</div>}>
         {/* Hero Banner Carousel */}
         <div className="relative w-full h-[70vh] mb-16 rounded-2xl overflow-hidden shadow-soft-xl">
@@ -320,21 +338,21 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Nguyễn Văn A",
+                name: "Nguyễn Minh Tuấn",
                 avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-                role: "Khách hàng",
+                role: "Giám đốc kinh doanh",
                 comment: "Tôi rất thích cách trang web gợi ý sản phẩm dựa trên sở thích của tôi. Đã tiết kiệm được rất nhiều thời gian tìm kiếm."
               },
               {
-                name: "Trần Thị B",
+                name: "Trần Thị Hương",
                 avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-                role: "Khách hàng",
+                role: "Chủ cửa hàng online",
                 comment: "Giao diện đẹp, dễ sử dụng và giao hàng nhanh chóng. Đặc biệt ấn tượng với tính năng AI gợi ý sản phẩm."
               },
               {
-                name: "Lê Văn C",
+                name: "Lê Hoàng Nam",
                 avatar: "https://randomuser.me/api/portraits/men/67.jpg",
-                role: "Khách hàng",
+                role: "Quản lý bán hàng",
                 comment: "Mua sắm trên đây là trải nghiệm tuyệt vời, từ đặt hàng đến giao hàng đều diễn ra nhanh chóng và chuyên nghiệp."
               }
             ].map((testimonial, i) => (

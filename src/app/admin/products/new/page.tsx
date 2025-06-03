@@ -42,9 +42,12 @@ type Category = {
   name: string;
 };
 
+type Brand = string;
+
 export default function NewProductPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,29 +62,36 @@ export default function NewProductPage() {
     price: '',
     stock: '',
     categoryId: '',
+    brand: '',
     imageUrl: '',
     isFeatured: false
   });
 
-  // Lấy danh sách danh mục
+  // Lấy danh sách danh mục và thương hiệu
   useEffect(() => {
-    async function fetchCategories() {
+    async function fetchData() {
       try {
         setLoading(true);
-        const response = await axios.get('/api/categories');
-        
+
+        // Fetch categories
+        const categoriesResponse = await axios.get('/api/categories');
         let categoriesData = [];
-        if (response.data && Array.isArray(response.data)) {
-          categoriesData = response.data;
-        } else if (response.data && response.data.categories) {
-          categoriesData = response.data.categories;
+        if (categoriesResponse.data && Array.isArray(categoriesResponse.data)) {
+          categoriesData = categoriesResponse.data;
+        } else if (categoriesResponse.data && categoriesResponse.data.categories) {
+          categoriesData = categoriesResponse.data.categories;
         } else {
-          console.warn('Dữ liệu API danh mục không đúng cấu trúc mong đợi:', response.data);
+          console.warn('Dữ liệu API danh mục không đúng cấu trúc mong đợi:', categoriesResponse.data);
           categoriesData = [];
         }
-        
         setCategories(categoriesData);
-        
+
+        // Fetch brands
+        const brandsResponse = await axios.get('/api/products/brands');
+        if (brandsResponse.data && Array.isArray(brandsResponse.data)) {
+          setBrands(brandsResponse.data);
+        }
+
         // Tự động chọn danh mục đầu tiên nếu có
         if (categoriesData.length > 0) {
           setProductData(prev => ({
@@ -89,16 +99,16 @@ export default function NewProductPage() {
             categoryId: categoriesData[0].id
           }));
         }
-        
+
         setLoading(false);
       } catch (err) {
-        console.error('Lỗi khi tải danh mục:', err);
-        setError('Không thể tải danh mục sản phẩm');
+        console.error('Lỗi khi tải dữ liệu:', err);
+        setError('Không thể tải danh mục và thương hiệu sản phẩm');
         setLoading(false);
       }
     }
-    
-    fetchCategories();
+
+    fetchData();
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -421,6 +431,30 @@ export default function NewProductPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Thương hiệu */}
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="brand">
+                Thương Hiệu
+              </label>
+              <select
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="brand"
+                name="brand"
+                value={productData.brand}
+                onChange={handleInputChange}
+              >
+                <option value="">Chọn thương hiệu</option>
+                {brands.map(brand => (
+                  <option key={brand} value={brand}>
+                    {brand}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Nếu không có thương hiệu phù hợp, hệ thống sẽ tự động xác định từ tên sản phẩm
+              </p>
             </div>
 
             {/* Sản phẩm nổi bật */}

@@ -23,6 +23,7 @@ import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import debounce from 'lodash.debounce';
 import AdminLayout from "@/components/admin/AdminLayout";
+import { triggerCategoriesUpdate } from "@/context/CategoriesContext";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -115,6 +116,7 @@ const CategoriesPage = () => {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   // Định nghĩa form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -135,24 +137,24 @@ const CategoriesPage = () => {
       setLoading(true);
       setErrorMessage(null);
       console.log("Đang lấy danh sách danh mục...");
-      
+
       try {
         const response = await axios.get('/api/categories?includeStructure=true');
         console.log("API response data:", response.data);
-        
+
         // Kiểm tra dữ liệu mẫu
         const hasMockData = response.headers['x-mock-data'] === 'true';
         setUsingMockData(hasMockData);
-        
+
         // Kiểm tra nếu dữ liệu vừa được khởi tạo
         if (response.headers['x-data-seeded'] === 'true') {
           setDataSeeded(true);
           toast.success('Đã khởi tạo dữ liệu mẫu vào cơ sở dữ liệu!');
         }
-        
+
         // Tổ chức dữ liệu danh mục
         let categoriesData = response.data || [];
-        
+
         // Sắp xếp danh mục theo thứ tự
         categoriesData = categoriesData.sort((a: CategoryColumn, b: CategoryColumn) => {
           // Ưu tiên sắp xếp theo sortOrder
@@ -162,22 +164,22 @@ const CategoriesPage = () => {
           // Nếu cùng sortOrder, sắp xếp theo thời gian tạo (mới nhất lên đầu)
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
-        
+
         setCategories(categoriesData);
         setFilteredCategories(categoriesData);
       } catch (requestError: any) {
         console.error("Request error:", requestError);
         console.error("Error status:", requestError?.response?.status);
-        
+
         const errorMessage = requestError?.response?.data?.error || "Không thể tải danh mục";
         const errorDetails = requestError?.response?.data?.details || "";
         const fullError = errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage;
-        
+
         setErrorMessage(fullError);
         toast.error(fullError);
-        
+
         // Nếu có dữ liệu mẫu trong lỗi response, hiển thị nó
-        if (requestError?.response?.data?.length > 0 && 
+        if (requestError?.response?.data?.length > 0 &&
             requestError.response.data[0]?.id?.startsWith('mock-')) {
           setCategories(requestError.response.data || []);
           setFilteredCategories(requestError.response.data || []);
@@ -199,6 +201,27 @@ const CategoriesPage = () => {
     fetchCategories();
   }, []);
 
+  // Xử lý phím ESC để đóng modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (open) {
+          setOpen(false);
+          setCategoryId(null);
+          form.reset();
+          setPreviewImage(null);
+        }
+        if (deleteModalOpen) {
+          setDeleteModalOpen(false);
+          setCategoryId(null);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [open, deleteModalOpen, form]);
+
   // Xử lý tìm kiếm danh mục
   const handleSearch = useCallback(
     debounce((term: string) => {
@@ -206,11 +229,11 @@ const CategoriesPage = () => {
         setFilteredCategories(categories);
         return;
       }
-      
+
       const searchResults = categories.filter(
         category => category.name.toLowerCase().includes(term.toLowerCase())
       );
-      
+
       setFilteredCategories(searchResults);
     }, 300),
     [categories]
@@ -220,13 +243,13 @@ const CategoriesPage = () => {
   useEffect(() => {
     handleSearch(searchTerm);
   }, [searchTerm, handleSearch]);
-  
+
   // Chuyển danh sách danh mục phẳng thành cấu trúc cây
   const getCategoryTree = () => {
     if (!categories.length) return [];
-    
+
     const rootCategories = categories.filter(cat => !cat.parentId);
-    
+
     const buildTree = (parentCategories: CategoryColumn[]): CategoryColumn[] => {
       return parentCategories.map(parent => {
         const children = categories.filter(cat => cat.parentId === parent.id);
@@ -236,38 +259,38 @@ const CategoriesPage = () => {
         };
       });
     };
-    
+
     return buildTree(rootCategories);
   };
-  
+
   // Chuyển cấu trúc cây thành danh sách phẳng cho việc hiển thị
   const flattenCategoryTree = (tree: CategoryColumn[], level = 0): CategoryColumn[] => {
     return tree.reduce((acc: CategoryColumn[], node: CategoryColumn) => {
-      const flatNode = { 
-        ...node, 
+      const flatNode = {
+        ...node,
         level // Thêm level để đánh dấu độ sâu của danh mục trong cây
       };
       acc.push(flatNode);
-      
+
       if (node.subCategories && node.subCategories.length > 0) {
         acc = [...acc, ...flattenCategoryTree(node.subCategories, level + 1)];
       }
-      
+
       return acc;
     }, []);
   };
-  
+
   // Sắp xếp và phân cấp danh mục
   const treeCategories = useMemo(() => {
     const tree = getCategoryTree();
     return flattenCategoryTree(tree);
   }, [categories]);
-  
+
   // Lọc cây danh mục theo từ khóa tìm kiếm
   const getFilteredTreeCategories = () => {
     if (!searchTerm) return treeCategories;
-    
-    return treeCategories.filter(category => 
+
+    return treeCategories.filter(category =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
@@ -293,28 +316,28 @@ const CategoriesPage = () => {
         handleSearch(searchTerm);
       } else if (activeTab === "parent") {
         const parentCategories = categories.filter(
-          category => !category.parentId && 
+          category => !category.parentId &&
           category.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredCategories(parentCategories);
       } else if (activeTab === "sub") {
         const subCategories = categories.filter(
-          category => category.parentId && 
+          category => category.parentId &&
           category.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredCategories(subCategories);
       }
     }
-    
+
     // Reset selected categories when filtering changes
     setSelectedCategories([]);
   }, [activeTab, categories, searchTerm, handleSearch, viewMode, treeCategories]);
 
   // Handle selecting a category (for bulk operations)
   const toggleCategorySelection = (id: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(id) 
-        ? prev.filter(categoryId => categoryId !== id) 
+    setSelectedCategories(prev =>
+      prev.includes(id)
+        ? prev.filter(categoryId => categoryId !== id)
         : [...prev, id]
     );
   };
@@ -333,31 +356,31 @@ const CategoriesPage = () => {
   // Confirm bulk delete
   const confirmBulkDelete = async () => {
     if (selectedCategories.length === 0) return;
-    
+
     try {
       setLoading(true);
       let success = true;
       let failedCategories: Array<{id: string, name: string, reason: string}> = [];
-      
+
       // First, check each category for products and subcategories
       for (const id of selectedCategories) {
         try {
           // Get the category details
           const categoryResponse = await axios.get(`/api/categories/${id}`);
           const category = categoryResponse.data;
-          
+
           // Check if this category has subcategories
           const hasSubcategories = categories.some(c => c.parentId === id);
-          
+
           // Check if this category has products (we need an additional API for this)
           const hasProducts = category._count?.products > 0;
-          
+
           // Skip deletion check if it has dependencies
           if (hasSubcategories || hasProducts) {
             success = false;
             const categoryName = category.name || categories.find(c => c.id === id)?.name || id;
             let reason = '';
-            
+
             if (hasSubcategories && hasProducts) {
               reason = 'có cả danh mục con và sản phẩm';
             } else if (hasSubcategories) {
@@ -365,7 +388,7 @@ const CategoriesPage = () => {
             } else {
               reason = 'có sản phẩm';
             }
-            
+
             failedCategories.push({
               id,
               name: categoryName,
@@ -376,16 +399,16 @@ const CategoriesPage = () => {
           console.error(`Lỗi khi kiểm tra danh mục ${id}:`, error);
         }
       }
-      
+
       // Filter out categories that cannot be deleted
       const categoriesToDelete = selectedCategories.filter(
         id => !failedCategories.some(fc => fc.id === id)
       );
-      
+
       // If we have categories to delete, proceed
       if (categoriesToDelete.length > 0) {
         let deleteSuccess = true;
-        
+
         // Delete each category
         for (const id of categoriesToDelete) {
           try {
@@ -393,7 +416,7 @@ const CategoriesPage = () => {
           } catch (error: any) {
             console.error(`Lỗi khi xóa danh mục ${id}:`, error);
             deleteSuccess = false;
-            
+
             // Get the category name for better error message
             const categoryName = categories.find(c => c.id === id)?.name || id;
             failedCategories.push({
@@ -403,20 +426,20 @@ const CategoriesPage = () => {
             });
           }
         }
-        
+
         // If all deletions succeeded, show success message
         if (deleteSuccess) {
           toast.success(`Đã xóa ${categoriesToDelete.length} danh mục thành công`);
         } else {
           // Some deletions failed
-          const deletedCount = categoriesToDelete.length - failedCategories.filter(fc => 
+          const deletedCount = categoriesToDelete.length - failedCategories.filter(fc =>
             !fc.reason.includes('có') // Filter out dependency failures to count only delete failures
           ).length;
-          
+
           toast.success(`Đã xóa ${deletedCount} danh mục thành công`);
         }
       }
-      
+
       // Show errors for categories that could not be deleted
       if (failedCategories.length > 0) {
         // Group by reason
@@ -427,16 +450,19 @@ const CategoriesPage = () => {
           }
           reasonGroups[fc.reason].push(fc.name);
         });
-        
+
         // Generate error messages
         Object.entries(reasonGroups).forEach(([reason, names]) => {
           toast.error(`${names.length} danh mục không thể xóa vì ${reason}: ${names.join(', ')}`);
         });
       }
-      
+
       // Reset selection and reload categories
       setSelectedCategories([]);
       await fetchCategories();
+
+      // Trigger event để cập nhật header
+      triggerCategoriesUpdate();
     } catch (error) {
       console.error("Lỗi khi xóa hàng loạt danh mục:", error);
       toast.error("Đã xảy ra lỗi khi xóa danh mục");
@@ -461,23 +487,26 @@ const CategoriesPage = () => {
     form.setValue("description", category.description || "");
     form.setValue("sortOrder", category.sortOrder);
     form.setValue("isFeatured", category.isFeatured || false);
-    
+
     // Hiển thị xem trước hình ảnh nếu có
     setPreviewImage(category.imageUrl);
+
+    // Mở modal để hiển thị form chỉnh sửa
+    setOpen(true);
   };
-  
+
   // Xử lý nộp form
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      
+
       // Kiểm tra nếu người dùng đang cố gắng đặt danh mục cha là con của chính nó
       if (categoryId && values.parentId === categoryId) {
         toast.error("Không thể đặt danh mục là con của chính nó");
         return;
       }
-      
+
       // Kiểm tra xem danh mục được chọn làm cha có phải là con của danh mục hiện tại không
       if (categoryId && values.parentId && values.parentId !== "none") {
         const isSubCategory = checkIfSubCategory(categoryId, values.parentId);
@@ -486,7 +515,7 @@ const CategoriesPage = () => {
           return;
         }
       }
-      
+
       // Xử lý sortOrder
       let sortOrder: number | undefined = undefined;
       if (values.sortOrder !== null && values.sortOrder !== undefined) {
@@ -498,7 +527,7 @@ const CategoriesPage = () => {
           return;
         }
       }
-      
+
       // Chuẩn bị dữ liệu để gửi
       const categoryData = {
         name: values.name,
@@ -508,9 +537,9 @@ const CategoriesPage = () => {
         sortOrder: sortOrder,
         isFeatured: values.isFeatured || false,
       };
-      
+
       console.log("Dữ liệu gửi đi:", JSON.stringify(categoryData));
-      
+
       // Nếu đang chỉnh sửa danh mục hiện có
       if (categoryId) {
         console.log(`Đang cập nhật danh mục: ${categoryId}`, categoryData);
@@ -518,12 +547,16 @@ const CategoriesPage = () => {
           const response = await axios.put(`/api/categories/${categoryId}`, categoryData);
           console.log("Phản hồi cập nhật:", response.data);
           toast.success("Đã cập nhật danh mục thành công");
-          
+
           // Reset form và tải lại danh mục
           form.reset();
           setCategoryId(null);
           setPreviewImage(null);
+          setOpen(false);
           await fetchCategories();
+
+          // Trigger event để cập nhật header
+          triggerCategoriesUpdate();
         } catch (updateError: any) {
           console.error("Chi tiết lỗi cập nhật:", updateError);
           const errorData = updateError?.response?.data;
@@ -531,7 +564,7 @@ const CategoriesPage = () => {
           const errorMessage = errorData?.error || "Đã xảy ra lỗi khi cập nhật danh mục";
           const errorDetails = errorData?.details || "";
           const fullError = errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage;
-          
+
           setErrorMessage(fullError);
           toast.error(fullError);
         }
@@ -541,12 +574,16 @@ const CategoriesPage = () => {
           const response = await axios.post('/api/categories', categoryData);
           console.log("Phản hồi tạo mới:", response.data);
           toast.success("Đã tạo danh mục thành công");
-          
+
           // Reset form và tải lại danh mục
           form.reset();
           setCategoryId(null);
           setPreviewImage(null);
+          setOpen(false);
           await fetchCategories();
+
+          // Trigger event để cập nhật header
+          triggerCategoriesUpdate();
         } catch (createError: any) {
           console.error("Chi tiết lỗi tạo mới:", createError);
           const errorData = createError?.response?.data;
@@ -554,7 +591,7 @@ const CategoriesPage = () => {
           const errorMessage = errorData?.error || "Đã xảy ra lỗi khi tạo danh mục";
           const errorDetails = errorData?.details || "";
           const fullError = errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage;
-          
+
           setErrorMessage(fullError);
           toast.error(fullError);
         }
@@ -569,7 +606,7 @@ const CategoriesPage = () => {
         const errorMessage = `Lỗi server: ${error.response.status} - ${error.response.data?.error || "Không xác định"}`;
         const errorDetails = error.response.data?.details || "";
         const fullError = errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage;
-        
+
         setErrorMessage(fullError);
         toast.error(fullError);
       } else if (error.request) {
@@ -591,32 +628,32 @@ const CategoriesPage = () => {
   // Kiểm tra xem categoryB có phải là con (hoặc cháu) của categoryA
   const checkIfSubCategory = (parentId: string, childId: string): boolean => {
     console.log(`Kiểm tra xem ${childId} có phải là con/cháu của ${parentId}`);
-    
+
     // Nếu childId hoặc parentId không tồn tại, trả về false
     if (!childId || !parentId) {
       console.log("childId hoặc parentId không hợp lệ, trả về false");
       return false;
     }
-    
+
     // Nếu trùng nhau, không thể là con của nhau
     if (childId === parentId) {
       console.log("childId trùng với parentId, trả về true");
       return true;
     }
-    
+
     // Tìm tất cả các danh mục con của parentId
     try {
       const findAllChildren = (categoryId: string): string[] => {
         if (!categoryId) return [];
-        
+
         const directChildren = categories
           .filter(cat => cat.parentId === categoryId)
           .map(cat => cat.id);
-        
+
         console.log(`Danh mục con trực tiếp của ${categoryId}:`, directChildren);
-        
+
         let allChildren: string[] = [...directChildren];
-        
+
         // Đệ quy tìm tất cả các con cháu
         for (const subId of directChildren) {
           if (subId) {
@@ -624,13 +661,13 @@ const CategoriesPage = () => {
             allChildren = [...allChildren, ...subChildren];
           }
         }
-        
+
         return allChildren;
       };
-      
+
       const allChildren = findAllChildren(parentId);
       console.log(`Tất cả con/cháu của ${parentId}:`, allChildren);
-      
+
       return allChildren.includes(childId);
     } catch (error) {
       console.error("Lỗi khi kiểm tra cấu trúc danh mục:", error);
@@ -643,25 +680,25 @@ const CategoriesPage = () => {
   const handleImageUpload = async (file: File) => {
     try {
       setUploadingImage(true);
-      
+
       // Tạo FormData
       const formData = new FormData();
       formData.append('file', file);
-      
+
       // Gọi API tải lên
       const response = await axios.post('/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       // Lấy URL hình ảnh đã tải lên
       const imageUrl = response.data.url;
-      
+
       // Cập nhật giá trị form và hiển thị xem trước
       form.setValue('imageUrl', imageUrl);
       setPreviewImage(imageUrl);
-      
+
       toast.success('Đã tải lên hình ảnh thành công');
     } catch (error) {
       console.error('Lỗi khi tải lên hình ảnh:', error);
@@ -683,20 +720,23 @@ const CategoriesPage = () => {
     try {
       setLoading(true);
       console.log("Đang cập nhật thứ tự:", items);
-      
+
       // Tạo mảng chứa cả danh mục cha và con để cập nhật
       const updateData = items.map((item, index) => ({
         id: item.id,
         sortOrder: index + 1,
       }));
-      
+
       const response = await axios.put('/api/categories/reorder', {
         categories: updateData,
       });
-      
+
       console.log("Phản hồi cập nhật thứ tự:", response.data);
       await fetchCategories();
       toast.success("Đã cập nhật thứ tự thành công");
+
+      // Trigger event để cập nhật header
+      triggerCategoriesUpdate();
     } catch (error) {
       console.error("Lỗi khi cập nhật thứ tự:", error);
       toast.error("Đã xảy ra lỗi khi cập nhật thứ tự");
@@ -715,7 +755,7 @@ const CategoriesPage = () => {
 
     // Cập nhật state trước khi gửi API để UI phản hồi ngay lập tức
     setFilteredCategories(items);
-    
+
     // Cập nhật danh sách gốc nếu cần
     if (JSON.stringify(categories.map(c => c.id)) !== JSON.stringify(filteredCategories.map(c => c.id))) {
       // Nếu đang lọc hoặc sắp xếp, chỉ cập nhật filtered categories
@@ -725,7 +765,7 @@ const CategoriesPage = () => {
         return;
       }
     }
-    
+
     // Lưu thứ tự mới
     setCategories(items);
     saveSortOrder(items);
@@ -741,23 +781,26 @@ const CategoriesPage = () => {
   // Xử lý xóa danh mục
   const confirmDelete = async () => {
     if (!categoryId) return;
-    
+
     try {
       setLoading(true);
       console.log(`Đang xóa danh mục: ${categoryId}`);
-      
+
       const response = await axios.delete(`/api/categories/${categoryId}`);
       console.log("Phản hồi xóa:", response.data);
-      
+
       toast.success("Đã xóa danh mục thành công");
       await fetchCategories();
+
+      // Trigger event để cập nhật header
+      triggerCategoriesUpdate();
     } catch (error: any) {
       console.error("Lỗi khi xóa danh mục:", error);
       const errorMessage = error?.response?.data?.error || "Đã xảy ra lỗi khi xóa danh mục";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
-      setOpen(false);
+      setDeleteModalOpen(false);
       setCategoryId(null);
     }
   };
@@ -782,10 +825,10 @@ const CategoriesPage = () => {
   const exportCategories = async (format: 'json' | 'csv') => {
     try {
       setLoading(true);
-      
+
       // Tạo URL với format
       const url = `/api/categories/export?format=${format}`;
-      
+
       // Tạo thẻ a tạm thời và kích hoạt tải xuống
       const link = document.createElement('a');
       link.href = url;
@@ -793,7 +836,7 @@ const CategoriesPage = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success(`Đã xuất danh mục dạng ${format.toUpperCase()} thành công`);
     } catch (error) {
       console.error('Lỗi khi xuất danh mục:', error);
@@ -810,42 +853,45 @@ const CategoriesPage = () => {
       toast.error('Chỉ hỗ trợ nhập file JSON');
       return;
     }
-    
+
     // Đặt file vào state
     setImportFile(file);
   };
-  
+
   // Hàm thực hiện nhập danh mục
   const processImport = async () => {
     if (!importFile) {
       toast.error('Vui lòng chọn file để nhập');
       return;
     }
-    
+
     try {
       setIsImporting(true);
-      
+
       // Đọc file JSON
       const fileContent = await importFile.text();
       const categoriesData = JSON.parse(fileContent);
-      
+
       // Gửi dữ liệu lên API
       const response = await axios.post('/api/categories/import', categoriesData);
-      
+
       // Hiển thị kết quả
       setImportResult(response.data);
-      
+
       // Hiển thị thông báo
       toast.success(`Đã nhập danh mục thành công: ${response.data.stats.created} tạo mới, ${response.data.stats.updated} cập nhật`);
-      
+
       // Tải lại danh mục sau khi nhập
       await fetchCategories();
+
+      // Trigger event để cập nhật header
+      triggerCategoriesUpdate();
     } catch (error: any) {
       console.error('Lỗi khi nhập danh mục:', error);
-      
+
       const errorMessage = error?.response?.data?.error || 'Đã xảy ra lỗi khi nhập danh mục';
       toast.error(errorMessage);
-      
+
       setImportResult({
         error: errorMessage,
         details: error?.response?.data?.details
@@ -854,12 +900,12 @@ const CategoriesPage = () => {
       setIsImporting(false);
     }
   };
-  
+
   // Hàm tải dữ liệu thống kê
   const loadStats = async () => {
     try {
       setStatsLoading(true);
-      
+
       // Lấy thống kê từ API
       const response = await axios.get('/api/categories/stats');
       setStatsData(response.data);
@@ -876,32 +922,35 @@ const CategoriesPage = () => {
   const toggleFeatured = async (categoryId: string, currentValue: boolean) => {
     try {
       setLoading(true);
-      
+
       const response = await axios.put('/api/categories/featured', {
         id: categoryId,
         isFeatured: !currentValue
       });
-      
+
       if (response.data.category) {
         // Cập nhật danh sách danh mục trong state
-        setCategories(prevCategories => 
-          prevCategories.map(cat => 
-            cat.id === categoryId 
-              ? { ...cat, isFeatured: !currentValue } 
+        setCategories(prevCategories =>
+          prevCategories.map(cat =>
+            cat.id === categoryId
+              ? { ...cat, isFeatured: !currentValue }
               : cat
           )
         );
-        
+
         // Cập nhật danh sách đã lọc
-        setFilteredCategories(prevFiltered => 
-          prevFiltered.map(cat => 
-            cat.id === categoryId 
-              ? { ...cat, isFeatured: !currentValue } 
+        setFilteredCategories(prevFiltered =>
+          prevFiltered.map(cat =>
+            cat.id === categoryId
+              ? { ...cat, isFeatured: !currentValue }
               : cat
           )
         );
-        
+
         toast.success(response.data.message);
+
+        // Trigger event để cập nhật header
+        triggerCategoriesUpdate();
       }
     } catch (error: any) {
       console.error("Error toggling featured status:", error);
@@ -917,9 +966,9 @@ const CategoriesPage = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Quản Lý Danh Mục</h1>
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="default" 
-              className="flex items-center" 
+            <Button
+              variant="default"
+              className="flex items-center"
               onClick={() => {
                 setCategoryId(null);
                 setOpen(true);
@@ -930,7 +979,7 @@ const CategoriesPage = () => {
               <Plus className="mr-2 h-4 w-4" />
               Thêm Danh Mục
             </Button>
-            
+
             {/* Nút cho chức năng xuất/nhập */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -954,10 +1003,10 @@ const CategoriesPage = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             {/* Thống kê */}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 if (showStats) {
                   setShowStats(false);
@@ -972,7 +1021,7 @@ const CategoriesPage = () => {
             </Button>
           </div>
         </div>
-        
+
         {/* Phần tìm kiếm, lọc và chọn chế độ xem */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="relative">
@@ -987,9 +1036,9 @@ const CategoriesPage = () => {
               }}
             />
           </div>
-          
-          <Select 
-            value={activeTab} 
+
+          <Select
+            value={activeTab}
             onValueChange={(value) => {
               setActiveTab(value);
               if (value === "all") {
@@ -1010,7 +1059,7 @@ const CategoriesPage = () => {
               <SelectItem value="sub">Danh mục con</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select
             value={viewMode}
             onValueChange={(value: 'list' | 'tree') => setViewMode(value)}
@@ -1024,7 +1073,7 @@ const CategoriesPage = () => {
             </SelectContent>
           </Select>
         </div>
-        
+
         {/* Cảnh báo dữ liệu mẫu nếu có */}
         {usingMockData && (
           <Alert className="mb-4">
@@ -1058,17 +1107,17 @@ const CategoriesPage = () => {
             <div className="flex items-center space-x-2">
               {selectedCategories.length > 0 && (
                 <>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => setIsBulkDeleteOpen(true)}
                   >
                     <Trash className="h-4 w-4 mr-2" />
                     Xóa ({selectedCategories.length})
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setSelectedCategories([])}
                   >
                     Bỏ chọn
@@ -1077,7 +1126,7 @@ const CategoriesPage = () => {
               )}
             </div>
           </div>
-          
+
           {/* Đây là nơi hiển thị bảng danh mục */}
           <div className="p-4">
             {/* Hiển thị danh sách danh mục */}
@@ -1094,8 +1143,8 @@ const CategoriesPage = () => {
                 {filteredCategories.map((category) => (
                   <div
                     key={category.id}
-                    className={`flex items-center justify-between p-4 rounded-md border 
-                      ${category.parentId ? 'ml-6 bg-gray-50' : 'bg-white'} 
+                    className={`flex items-center justify-between p-4 rounded-md border
+                      ${category.parentId ? 'ml-6 bg-gray-50' : 'bg-white'}
                       hover:bg-gray-100 transition-colors`}
                   >
                     <div className="flex items-center gap-4 flex-grow">
@@ -1105,11 +1154,11 @@ const CategoriesPage = () => {
                         checked={selectedCategories.includes(category.id)}
                         onChange={() => toggleCategorySelection(category.id)}
                       />
-                      
+
                       {/* Hình ảnh danh mục */}
                       <div className="h-10 w-10 relative rounded-md overflow-hidden border">
                         {category.imageUrl ? (
-                          <div 
+                          <div
                             className="h-full w-full bg-cover bg-center"
                             style={{ backgroundImage: `url(${category.imageUrl})` }}
                           />
@@ -1119,7 +1168,7 @@ const CategoriesPage = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex-grow">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{category.name}</span>
@@ -1130,21 +1179,21 @@ const CategoriesPage = () => {
                             </span>
                           )}
                         </div>
-                        
+
                         {category.description && (
                           <p className="text-sm text-gray-500 line-clamp-1">{category.description}</p>
                         )}
-                        
+
                         {category.parentCategory && (
                           <div className="text-xs text-gray-500 mt-1">
                             Danh mục cha: {category.parentCategory.name}
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="text-xs text-gray-500">{category._count?.products || 0} sản phẩm</div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {/* Nút đánh dấu nổi bật */}
                       <Button
@@ -1153,11 +1202,11 @@ const CategoriesPage = () => {
                         onClick={() => toggleFeatured(category.id, !!category.isFeatured)}
                         title={category.isFeatured ? "Bỏ đánh dấu nổi bật" : "Đánh dấu nổi bật"}
                       >
-                        <Star 
-                          className={`h-5 w-5 ${category.isFeatured ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} 
+                        <Star
+                          className={`h-5 w-5 ${category.isFeatured ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`}
                         />
                       </Button>
-                      
+
                       {/* Các nút hành động khác */}
                       <Button
                         variant="ghost"
@@ -1166,13 +1215,13 @@ const CategoriesPage = () => {
                       >
                         <FileEdit className="h-5 w-5 text-blue-500" />
                       </Button>
-                      
+
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => {
                           setCategoryId(category.id);
-                          setOpen(true);
+                          setDeleteModalOpen(true);
                         }}
                       >
                         <Trash className="h-5 w-5 text-red-500" />
@@ -1185,18 +1234,28 @@ const CategoriesPage = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Modals go here */}
       <LoadingModal loading={loading || uploadingImage} />
 
       {/* Form modal cho thêm/chỉnh sửa danh mục */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setOpen(false);
+              setCategoryId(null);
+              form.reset();
+              setPreviewImage(null);
+            }
+          }}
+        >
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-medium mb-4">
               {categoryId ? "Chỉnh sửa danh mục" : "Thêm danh mục mới"}
             </h2>
-            
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                 <FormField
@@ -1216,7 +1275,7 @@ const CategoriesPage = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="parentId"
@@ -1224,8 +1283,8 @@ const CategoriesPage = () => {
                     <FormItem>
                       <FormLabel>Danh mục cha</FormLabel>
                       <Select
-                        disabled={loading} 
-                        onValueChange={field.onChange} 
+                        disabled={loading}
+                        onValueChange={field.onChange}
                         value={field.value || "none"}
                       >
                         <FormControl>
@@ -1249,7 +1308,7 @@ const CategoriesPage = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="description"
@@ -1268,7 +1327,7 @@ const CategoriesPage = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="sortOrder"
@@ -1295,7 +1354,7 @@ const CategoriesPage = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="isFeatured"
@@ -1320,7 +1379,7 @@ const CategoriesPage = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="imageUrl"
@@ -1329,7 +1388,7 @@ const CategoriesPage = () => {
                       <FormLabel>Hình ảnh</FormLabel>
                       <FormControl>
                         <div className="space-y-2">
-                          <div 
+                          <div
                             className={`border-2 border-dashed rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer relative ${
                               uploadingImage ? 'opacity-50' : ''
                             }`}
@@ -1352,9 +1411,9 @@ const CategoriesPage = () => {
                               </div>
                             ) : previewImage ? (
                               <div className="relative">
-                                <img 
-                                  src={previewImage} 
-                                  alt="Preview" 
+                                <img
+                                  src={previewImage}
+                                  alt="Preview"
                                   className="max-h-[150px] rounded-md mx-auto object-contain"
                                 />
                                 <Button
@@ -1390,7 +1449,7 @@ const CategoriesPage = () => {
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button
                     type="button"
@@ -1405,8 +1464,8 @@ const CategoriesPage = () => {
                   >
                     Hủy
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={loading}
                   >
                     {categoryId ? "Cập nhật" : "Tạo mới"}
@@ -1418,9 +1477,12 @@ const CategoriesPage = () => {
         </div>
       )}
 
-      <AlertModal 
-        isOpen={!!categoryId && !open} 
-        onClose={() => setCategoryId(null)}
+      <AlertModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setCategoryId(null);
+        }}
         onConfirm={confirmDelete}
         loading={loading}
         title="Xóa danh mục"
@@ -1428,9 +1490,9 @@ const CategoriesPage = () => {
         confirmText="Xóa"
         cancelText="Hủy"
       />
-      
-      <AlertModal 
-        isOpen={isBulkDeleteOpen} 
+
+      <AlertModal
+        isOpen={isBulkDeleteOpen}
         onClose={() => setIsBulkDeleteOpen(false)}
         onConfirm={confirmBulkDelete}
         loading={loading}
@@ -1439,7 +1501,7 @@ const CategoriesPage = () => {
         confirmText="Xóa tất cả"
         cancelText="Hủy"
       />
-      
+
       {/* Modals for import and other functionality */}
       {/* ... existing code ... */}
     </AdminLayout>

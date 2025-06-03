@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useCategories } from '@/context/CategoriesContext';
 import { ArrowRight, Sparkles, ImageIcon, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
@@ -17,7 +18,7 @@ type Category = {
 };
 
 export default function FeaturedCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { featuredCategories, loading: categoriesLoading } = useCategories();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -25,39 +26,16 @@ export default function FeaturedCategories() {
 
   const isAdmin = session?.user?.role === 'ADMIN';
 
+  // Sử dụng categories từ Context và fallback nếu cần
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        console.log('Fetching featured categories...');
-        const response = await fetch('/api/categories?featured=true');
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
-        }
-
-        let data = await response.json();
-        console.log('Received featured categories:', data);
-
-        // Nếu không có danh mục nào, tạo danh mục mẫu
-        if (!data || data.length === 0) {
-          console.log('No featured categories found, creating fallback categories');
-          data = getFallbackCategories();
-        }
-
-        setCategories(data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-        setError('Không thể tải danh mục sản phẩm');
-        // Sử dụng dữ liệu mẫu khi có lỗi
-        setCategories(getFallbackCategories());
-      } finally {
-        setLoading(false);
+    if (!categoriesLoading) {
+      if (featuredCategories.length === 0) {
+        console.log('No featured categories found, creating fallback categories');
+        // Có thể set fallback categories nếu cần
       }
-    };
-
-    fetchCategories();
-  }, []);
+      setLoading(false);
+    }
+  }, [categoriesLoading, featuredCategories]);
 
   // Tạo danh mục mẫu khi API bị lỗi
   const getFallbackCategories = (): Category[] => {
@@ -122,11 +100,11 @@ export default function FeaturedCategories() {
     );
   }
 
-  if (error && categories.length === 0) {
+  if (error && featuredCategories.length === 0) {
     return <p className="text-red-500 my-4">{error}</p>;
   }
 
-  if (!categories.length) {
+  if (!featuredCategories.length) {
     return null;
   }
 
@@ -154,7 +132,7 @@ export default function FeaturedCategories() {
             </Link>
           )}
           <Link
-            href="/categories"
+            href="/products"
             className="text-primary-600 inline-flex items-center gap-1 font-medium hover:underline transition-colors"
           >
             Xem tất cả <ArrowRight className="h-4 w-4" />
@@ -163,36 +141,17 @@ export default function FeaturedCategories() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
-        {categories.map((category) => (
+        {featuredCategories.map((category) => (
           <motion.div
             key={category.id}
             variants={itemVariants}
             className="group"
           >
             <Link
-              href={`/products?category=${encodeURIComponent(category.id)}&page=1`}
+              href={`/products?category=${category.id}`}
               className="block rounded-xl bg-gradient-to-b from-white to-gray-50 shadow-sm hover:shadow-md border border-gray-200 overflow-hidden transition-all duration-300 h-full"
-              prefetch={false}
             >
-              <div className="relative w-full h-40 bg-gray-50 overflow-hidden">
-                {/* Chỉ hiển thị Image component khi có URL và chưa gặp lỗi */}
-                {category.imageUrl && !imageErrors[category.id] ? (
-                  <Image
-                    src={category.imageUrl}
-                    alt={category.name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={() => handleImageError(category.id)}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center text-gray-400 p-4">
-                    <ImageIcon className="h-10 w-10 mb-2 opacity-50" />
-                    <span className="text-center text-sm">{category.name}</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </div>
+              {/* Bỏ hình ảnh minh họa cho danh mục */}
               <div className="p-4">
                 <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">{category.name}</h3>
                 {category.description && (

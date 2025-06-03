@@ -10,26 +10,31 @@ import { Toaster } from 'react-hot-toast';
 import CartProvider from "@/context/CartProvider";
 import { SearchProvider } from "@/context/SearchContext";
 import { ProductProvider } from "@/context/ProductContext";
-import { ThemeProvider } from "@/context/ThemeProvider";
+import { CategoriesProvider } from "@/context/CategoriesContext";
 import ChatBoxWrapper from "@/components/ChatBoxWrapper";
 
-// Định nghĩa font chữ chính
+// Định nghĩa font chữ chính với hỗ trợ tiếng Việt
 const poppins = Poppins({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-poppins",
+  display: 'swap',
 });
 
-// Font chữ thứ hai, dùng cho nội dung
+// Font chữ thứ hai, dùng cho nội dung với hỗ trợ tiếng Việt
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-inter",
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
   title: "E-Shop AI - Mua sắm thông minh với AI gợi ý",
   description: "Website bán hàng với AI gợi ý sản phẩm theo hành vi người dùng",
   keywords: "ecommerce, ai, recommendation, shopping, online",
+  other: {
+    charset: "utf-8",
+  },
 };
 
 export default async function RootLayout({
@@ -40,10 +45,10 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions);
 
   return (
-    <html lang="vi" className={`${poppins.variable} ${inter.variable}`}>
+    <html lang="vi" data-theme="light" className={`${poppins.variable} ${inter.variable}`}>
       <body className={`font-sans antialiased text-base-content bg-base-100/30`}>
         <SessionProvider session={session}>
-          <ThemeProvider>
+          <CategoriesProvider>
             <CartProvider>
               <SearchProvider>
                 <ProductProvider>
@@ -59,7 +64,7 @@ export default async function RootLayout({
                 </ProductProvider>
               </SearchProvider>
             </CartProvider>
-          </ThemeProvider>
+          </CategoriesProvider>
         </SessionProvider>
       </body>
     </html>
