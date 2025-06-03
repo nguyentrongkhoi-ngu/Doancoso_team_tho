@@ -97,7 +97,6 @@ Hệ thống quản lý trò chuyện sử dụng các API endpoints sau:
 1. **GET /api/admin/chat-sessions**: Lấy danh sách phiên trò chuyện, có thể lọc theo trạng thái
 2. **GET /api/admin/chat-sessions/:id**: Lấy thông tin chi tiết và lịch sử tin nhắn của một phiên trò chuyện
 3. **PATCH /api/admin/chat-sessions/:id**: Cập nhật trạng thái của một phiên trò chuyện
-4. **GET /api/admin/chat-statistics**: Lấy thống kê về hoạt động trò chuyện
 
 ---
 

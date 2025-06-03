@@ -24,6 +24,7 @@ type Product = {
   name: string;
   price: number;
   stock: number;
+  brand?: string;
   category: {
     name: string;
   };
@@ -442,6 +443,9 @@ export default function ProductsPage() {
                     Danh Mục
                   </th>
                   <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Thương Hiệu
+                  </th>
+                  <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Giá
                   </th>
                   <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -474,6 +478,9 @@ export default function ProductsPage() {
                       </td>
                       <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <p className="text-gray-900 whitespace-nowrap">{product.category?.name || 'N/A'}</p>
+                      </td>
+                      <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                        <p className="text-gray-900 whitespace-nowrap">{product.brand || 'Chưa xác định'}</p>
                       </td>
                       <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <p className="text-gray-900 whitespace-nowrap">{formatPrice(product.price)}</p>

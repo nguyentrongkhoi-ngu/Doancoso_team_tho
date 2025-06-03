@@ -75,12 +75,13 @@ export default function ProductCard({ product, className = '', priority = false 
   };
 
   return (
-    <Link 
-      href={`/products/${product.id}`} 
+    <Link
+      href={`/products/${product.id}`}
       onClick={handleClick}
-      className={`group border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 ${className}`}
+      className={`group block bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-purple-300 h-full ${className}`}
     >
-      <div className="relative w-full h-48">
+      {/* Image Container */}
+      <div className="relative w-full h-48 overflow-hidden bg-gray-50">
         {product.imageUrl && isValidURL(product.imageUrl) ? (
           <Image
             loader={customImageLoader}
@@ -92,63 +93,92 @@ export default function ProductCard({ product, className = '', priority = false 
             priority={priority}
           />
         ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-400">No image</span>
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <div className="text-center">
+              <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-gray-400 text-sm">Chưa có ảnh</span>
+            </div>
           </div>
         )}
-        
+
         {/* Wishlist button */}
-        <div className="absolute top-2 right-2">
-          <WishlistButton 
-            productId={product.id} 
-            className="btn-sm btn-circle"
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <WishlistButton
+            productId={product.id}
+            className="btn btn-circle btn-sm bg-white/80 backdrop-blur-sm border-0 hover:bg-white shadow-lg"
           />
         </div>
-        
+
         {/* Stock badge */}
-        {product.stock <= 10 && (
-          <div className="absolute top-2 left-2 badge badge-error text-white">
-            Còn {product.stock}
+        {product.stock < 10 && product.stock > 0 && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+            Sắp hết
+          </div>
+        )}
+
+        {/* Out of stock overlay */}
+        {product.stock === 0 && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="bg-white px-3 py-1 rounded-full text-gray-800 font-semibold text-sm">Hết hàng</span>
           </div>
         )}
       </div>
-      
-      <div className="p-4">
-        <h3 className="font-medium text-gray-900 truncate">{product.name}</h3>
-        <p className="text-gray-500 text-sm mt-1 truncate">{product.category.name}</p>
-        <p className="text-primary-600 font-bold mt-2">
-          {formatPrice(product.price)}
+
+      {/* Content */}
+      <div className="p-4 flex-grow flex flex-col">
+        {/* Product Name */}
+        <h3 className="font-medium text-gray-900 line-clamp-2 min-h-[3rem] group-hover:text-purple-600 transition-colors duration-300">
+          {product.name}
+        </h3>
+
+        {/* Category */}
+        <p className="text-gray-500 text-sm mt-1 line-clamp-1">
+          {product.category.name}
         </p>
-        
-        {/* Rating if available */}
+
+        {/* Rating */}
         {product.averageRating !== undefined && (
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1 mt-2">
             <div className="rating rating-sm">
               {[1, 2, 3, 4, 5].map((star) => (
-                <input 
+                <input
                   key={star}
-                  type="radio" 
-                  name={`rating-${product.id}`} 
-                  className="mask mask-star-2 bg-orange-400" 
+                  type="radio"
+                  name={`rating-${product.id}`}
+                  className="mask mask-star-2 bg-orange-400"
                   checked={Math.round(product.averageRating || 0) === star}
                   readOnly
                 />
               ))}
             </div>
-            <span className="text-xs">({product.averageRating.toFixed(1)})</span>
+            <span className="text-xs text-gray-600">({product.averageRating.toFixed(1)})</span>
           </div>
         )}
-        
-        {/* Hiển thị trạng thái sản phẩm */}
-        {product.stock > 0 ? (
-          <span className="badge badge-success">Còn hàng</span>
-        ) : (
-          <span className="badge badge-error">Hết hàng</span>
-        )}
-        
-        <div className="card-actions justify-end mt-2">
-          <button 
-            className={`btn btn-primary btn-sm ${isLoading ? 'loading' : ''}`} 
+
+        {/* Price */}
+        <p className="text-lg font-bold text-purple-600 mt-2">
+          {formatPrice(product.price)}
+        </p>
+
+        {/* Stock Status */}
+        <div className="mt-2">
+          {product.stock > 0 ? (
+            <span className="badge badge-success badge-sm">Còn hàng</span>
+          ) : (
+            <span className="badge badge-error badge-sm">Hết hàng</span>
+          )}
+        </div>
+
+        {/* Add to Cart Button */}
+        <div className="mt-auto pt-3">
+          <button
+            className={`btn btn-sm w-full ${
+              product.stock > 0
+                ? 'btn-primary'
+                : 'btn-disabled'
+            } ${isLoading ? 'loading' : ''}`}
             onClick={handleAddToCart}
             disabled={isLoading || product.stock <= 0}
           >

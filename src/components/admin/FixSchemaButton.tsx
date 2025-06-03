@@ -5,23 +5,23 @@ import toast from 'react-hot-toast';
 
 export default function FixSchemaButton() {
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const fixSchema = async () => {
     setIsLoading(true);
-    
+
     try {
       toast.loading('Đang kiểm tra và sửa chữa schema...');
-      
+
       const response = await fetch('/api/admin/products/fix-schema');
       const data = await response.json();
-      
+
       if (response.ok) {
         if (data.action === 'added_column') {
           toast.success('Đã thêm cột isFeatured vào bảng Product thành công!');
         } else {
           toast.success('Cột isFeatured đã tồn tại. Không cần sửa chữa.');
         }
-        
+
         // Reload trang sau 2 giây để áp dụng thay đổi
         setTimeout(() => {
           window.location.reload();
@@ -30,13 +30,15 @@ export default function FixSchemaButton() {
         toast.error(`Lỗi: ${data.message || response.statusText}`);
       }
     } catch (error) {
-      console.error('Error fixing schema:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fixing schema:', error);
+      }
       toast.error('Đã xảy ra lỗi khi sửa chữa schema');
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <button
       onClick={fixSchema}
@@ -61,4 +63,4 @@ export default function FixSchemaButton() {
       )}
     </button>
   );
-} 
+}

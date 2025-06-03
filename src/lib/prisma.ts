@@ -6,10 +6,5 @@ import { prisma as dbPrisma } from '@/db';
 export const prisma = dbPrisma;
 export default dbPrisma;
 
-// Log cảnh báo trong môi trường phát triển
-if (process.env.NODE_ENV !== 'production') {
-  console.warn(
-    'Warning: @/lib/prisma is deprecated and will be removed in a future release. ' +
-    'Please update your imports to use @/db instead.'
-  );
-} 
+// TODO: Migrate all imports from @/lib/prisma to @/db
+// This file maintains backward compatibility

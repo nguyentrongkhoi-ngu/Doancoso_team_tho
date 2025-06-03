@@ -3,6 +3,16 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/db";
 import { authOptions } from "@/lib/auth";
 
+// Helper function để so sánh ngày mà không quan tâm đến giờ
+function isCouponDateValid(startDate: Date, endDate: Date): boolean {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  return today >= start && today <= end;
+}
+
 // Lấy giỏ hàng của người dùng hiện tại
 export async function GET(req: NextRequest) {
   try {
@@ -47,14 +57,29 @@ export async function GET(req: NextRequest) {
 
     // Nếu có mã giảm giá, kiểm tra và tính toán số tiền giảm giá
     if (couponCode) {
-      const coupon = await prisma.coupon.findUnique({
+      console.log("GET cart - Checking coupon:", couponCode);
+
+      let coupon = await prisma.coupon.findFirst({
         where: {
           code: couponCode,
           isActive: true,
-          startDate: { lte: new Date() },
-          endDate: { gte: new Date() },
         },
       });
+
+      console.log("GET cart - Found coupon:", coupon ? {
+        id: coupon.id,
+        code: coupon.code,
+        isActive: coupon.isActive,
+        startDate: coupon.startDate,
+        endDate: coupon.endDate
+      } : null);
+
+      // Kiểm tra ngày tháng nếu tìm thấy coupon
+      if (coupon && !isCouponDateValid(coupon.startDate, coupon.endDate)) {
+        console.log("GET cart - Coupon date validation failed");
+        // Không áp dụng mã giảm giá nếu không hợp lệ về ngày tháng
+        coupon = null;
+      }
 
       if (coupon) {
         // Kiểm tra giới hạn sử dụng
@@ -316,21 +341,75 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Kiểm tra mã giảm giá có tồn tại và còn hiệu lực
-    const coupon = await prisma.coupon.findUnique({
+    // Chuẩn hóa mã giảm giá thành chữ hoa
+    const normalizedCouponCode = couponCode.trim().toUpperCase();
+
+    console.log("Searching for coupon with code:", normalizedCouponCode);
+
+    // Tìm mã giảm giá theo code và trạng thái active
+    const coupon = await prisma.coupon.findFirst({
       where: {
-        code: couponCode,
+        code: normalizedCouponCode,
         isActive: true,
-        startDate: { lte: new Date() },
-        endDate: { gte: new Date() },
       },
     });
 
+    console.log("Found coupon by code and active status:", coupon ? {
+      id: coupon.id,
+      code: coupon.code,
+      isActive: coupon.isActive,
+      startDate: coupon.startDate,
+      endDate: coupon.endDate,
+      usageCount: coupon.usageCount,
+      usageLimit: coupon.usageLimit
+    } : null);
+
+    // Kiểm tra ngày tháng nếu tìm thấy coupon
+    if (coupon && !isCouponDateValid(coupon.startDate, coupon.endDate)) {
+      console.log("Coupon date validation failed");
+      // Kiểm tra chi tiết lý do
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const start = new Date(coupon.startDate.getFullYear(), coupon.startDate.getMonth(), coupon.startDate.getDate());
+      const end = new Date(coupon.endDate.getFullYear(), coupon.endDate.getMonth(), coupon.endDate.getDate());
+
+      console.log("Date comparison:", { today, start, end });
+
+      if (today < start) {
+        return NextResponse.json(
+          { error: "Mã giảm giá chưa có hiệu lực" },
+          { status: 400 }
+        );
+      } else if (today > end) {
+        return NextResponse.json(
+          { error: "Mã giảm giá đã hết hạn" },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!coupon) {
-      return NextResponse.json(
-        { error: "Mã giảm giá không tồn tại hoặc đã hết hạn" },
-        { status: 404 }
-      );
+      // Kiểm tra xem mã có tồn tại không (bất kể trạng thái)
+      const existingCoupon = await prisma.coupon.findFirst({
+        where: { code: normalizedCouponCode }
+      });
+
+      if (!existingCoupon) {
+        return NextResponse.json(
+          { error: "Mã giảm giá không tồn tại" },
+          { status: 404 }
+        );
+      } else if (!existingCoupon.isActive) {
+        return NextResponse.json(
+          { error: "Mã giảm giá đã bị vô hiệu hóa" },
+          { status: 400 }
+        );
+      } else {
+        return NextResponse.json(
+          { error: "Mã giảm giá không hợp lệ" },
+          { status: 400 }
+        );
+      }
     }
 
     // Kiểm tra giới hạn sử dụng

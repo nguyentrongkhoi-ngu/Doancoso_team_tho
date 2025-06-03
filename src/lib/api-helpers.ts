@@ -5,6 +5,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { logger } from "./logger";
+import { createErrorResponse } from "./error-handler";
 import { prisma } from "@/db";
 
 /**
@@ -13,7 +15,7 @@ import { prisma } from "@/db";
 export async function checkAdminPermission() {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session) {
       return {
         success: false,
@@ -22,7 +24,7 @@ export async function checkAdminPermission() {
         details: "No session found"
       };
     }
-    
+
     if (session.user.role !== "ADMIN") {
       return {
         success: false,
@@ -31,7 +33,7 @@ export async function checkAdminPermission() {
         details: `Role required: ADMIN, current: ${session.user.role}`
       };
     }
-    
+
     return {
       success: true,
       userId: session.user.id,
@@ -56,12 +58,12 @@ export async function checkProductExists(productId: string) {
   try {
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { 
-        id: true, 
-        name: true 
+      select: {
+        id: true,
+        name: true
       }
     });
-    
+
     if (!product) {
       return {
         exists: false,
@@ -69,7 +71,7 @@ export async function checkProductExists(productId: string) {
         details: `Product with ID ${productId} not found`
       };
     }
-    
+
     return {
       exists: true,
       product
@@ -112,29 +114,8 @@ export function createApiResponse(data: any, status = 200) {
 
 /**
  * API Error Response Builder
+ * @deprecated Use createErrorResponse from error-handler.ts instead
  */
 export function createApiErrorResponse(error: any, status = 500) {
-  // Xác định thông tin lỗi chi tiết
-  const errorDetails = {
-    message: error.message || "Đã xảy ra lỗi",
-    details: error.details || error.stack || null,
-    code: error.code || null,
-  };
-  
-  // Log lỗi nếu là lỗi server
-  if (status >= 500) {
-    console.error("Server error:", errorDetails);
-  } else {
-    console.log(`API Error: Status ${status}`, errorDetails);
-  }
-  
-  return NextResponse.json(
-    {
-      success: false,
-      error: errorDetails.message,
-      details: process.env.NODE_ENV === "development" ? errorDetails.details : null,
-      code: errorDetails.code
-    },
-    { status }
-  );
-} 
+  return createErrorResponse(error, status, process.env.NODE_ENV === 'development');
+}

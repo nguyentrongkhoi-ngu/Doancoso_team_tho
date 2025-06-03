@@ -13,6 +13,8 @@ type Category = {
   name: string;
 };
 
+type Brand = string;
+
 type Product = {
   id: string;
   name: string;
@@ -20,6 +22,7 @@ type Product = {
   price: number;
   stock: number;
   imageUrl: string | null;
+  brand?: string;
   categoryId: string;
   category: {
     id: string;
@@ -72,6 +75,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const { id } = params;
   
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +91,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     price: string;
     stock: string;
     categoryId: string;
+    brand: string;
     imageUrl: string;
     isFeatured: boolean;
   }>({
@@ -96,6 +101,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     price: '',
     stock: '',
     categoryId: '',
+    brand: '',
     imageUrl: '',
     isFeatured: false
   });
@@ -108,7 +114,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         
         // Lấy danh sách danh mục
         const categoriesResponse = await axios.get('/api/categories');
-        
+
         if (categoriesResponse.data && Array.isArray(categoriesResponse.data)) {
           setCategories(categoriesResponse.data);
         } else if (categoriesResponse.data && categoriesResponse.data.categories) {
@@ -116,6 +122,12 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
         } else {
           console.warn('Dữ liệu API danh mục không đúng cấu trúc mong đợi:', categoriesResponse.data);
           setCategories([]);
+        }
+
+        // Lấy danh sách thương hiệu
+        const brandsResponse = await axios.get('/api/products/brands');
+        if (brandsResponse.data && Array.isArray(brandsResponse.data)) {
+          setBrands(brandsResponse.data);
         }
         
         // Lấy thông tin sản phẩm theo ID
@@ -134,6 +146,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           price: product.price.toString(),
           stock: product.stock.toString(),
           categoryId: product.categoryId,
+          brand: product.brand || '',
           imageUrl: product.imageUrl || '',
           isFeatured: product.isFeatured || false
         });
@@ -521,6 +534,30 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Thương hiệu */}
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="brand">
+                Thương Hiệu
+              </label>
+              <select
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="brand"
+                name="brand"
+                value={productData.brand}
+                onChange={handleInputChange}
+              >
+                <option value="">Chọn thương hiệu</option>
+                {brands.map(brand => (
+                  <option key={brand} value={brand}>
+                    {brand}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Nếu không có thương hiệu phù hợp, hệ thống sẽ tự động xác định từ tên sản phẩm
+              </p>
             </div>
 
             {/* Sản phẩm nổi bật */}

@@ -8,36 +8,36 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Array of testimonials
 const testimonials = [
     {
-        name: "Sarah Johnson",
+        name: "Nguyễn Thị Mai",
         avatar: "/images/avatars/avatar-1.png",
-        role: "Marketing Director",
+        role: "Giám đốc Marketing",
         rating: 5,
-        comment: "This platform transformed our online presence. The intuitive interface and powerful features exceeded our expectations. Our sales have increased by 40% since implementation!",
-        date: "August 2023"
+        comment: "Nền tảng này đã thay đổi hoàn toàn sự hiện diện trực tuyến của chúng tôi. Giao diện trực quan và các tính năng mạnh mẽ vượt quá mong đợi. Doanh số của chúng tôi đã tăng 40% kể từ khi triển khai!",
+        date: "Tháng 8, 2023"
     },
     {
-        name: "Michael Chen",
+        name: "Trần Minh Đức",
         avatar: "/images/avatars/avatar-2.png",
-        role: "E-commerce Manager",
+        role: "Quản lý Thương mại điện tử",
         rating: 5,
-        comment: "After trying numerous e-commerce solutions, this one stands out for its reliability and comprehensive feature set. Customer support is exceptional and always ready to help.",
-        date: "September 2023"
+        comment: "Sau khi thử nhiều giải pháp thương mại điện tử, nền tảng này nổi bật với độ tin cậy và bộ tính năng toàn diện. Hỗ trợ khách hàng xuất sắc và luôn sẵn sàng giúp đỡ.",
+        date: "Tháng 9, 2023"
     },
     {
-        name: "Emily Rodriguez",
+        name: "Lê Thị Hương",
         avatar: "/images/avatars/avatar-3.png",
-        role: "Small Business Owner",
+        role: "Chủ doanh nghiệp nhỏ",
         rating: 4,
-        comment: "As a small business owner, finding an affordable yet powerful e-commerce solution was crucial. This platform provided everything I needed without breaking the bank.",
-        date: "October 2023"
+        comment: "Là chủ doanh nghiệp nhỏ, việc tìm một giải pháp thương mại điện tử giá cả phải chăng nhưng mạnh mẽ là rất quan trọng. Nền tảng này cung cấp mọi thứ tôi cần mà không làm vỡ ngân sách.",
+        date: "Tháng 10, 2023"
     },
     {
-        name: "David Thompson",
+        name: "Phạm Văn Hùng",
         avatar: "/images/avatars/avatar-4.png",
-        role: "IT Director",
+        role: "Giám đốc IT",
         rating: 5,
-        comment: "The integration capabilities are outstanding. We connected our CRM and inventory systems seamlessly. The performance is top-notch even with our extensive product catalog.",
-        date: "November 2023"
+        comment: "Khả năng tích hợp rất xuất sắc. Chúng tôi đã kết nối hệ thống CRM và quản lý kho một cách liền mạch. Hiệu suất tuyệt vời ngay cả với danh mục sản phẩm rộng lớn của chúng tôi.",
+        date: "Tháng 11, 2023"
     }
 ];
 
@@ -108,9 +108,9 @@ const Testimonials = () => {
                         transition={{ duration: 0.5 }}
                         viewport={{ once: true }}
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Customers Say</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Khách hàng nói gì về chúng tôi</h2>
                         <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                            Discover why thousands of businesses trust our platform for their e-commerce needs.
+                            Khám phá lý do tại sao hàng nghìn doanh nghiệp tin tưởng nền tảng của chúng tôi cho nhu cầu thương mại điện tử.
                         </p>
                     </motion.div>
                 </div>

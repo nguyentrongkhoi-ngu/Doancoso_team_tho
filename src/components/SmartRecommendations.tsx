@@ -67,10 +67,13 @@ export default function SmartRecommendations() {
         <h2 className="text-2xl font-bold mb-4">Đang tải gợi ý sản phẩm...</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, index) => (
-            <div key={index} className="bg-gray-100 rounded-lg p-4 animate-pulse">
-              <div className="w-full h-48 bg-gray-200 rounded-md mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div key={index} className="bg-gray-100 rounded-lg p-4 animate-pulse h-full flex flex-col">
+              <div className="w-full h-48 bg-gray-200 rounded-md mb-2 flex-shrink-0"></div>
+              <div className="flex-grow flex flex-col">
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mt-auto"></div>
+              </div>
             </div>
           ))}
         </div>
@@ -119,16 +122,16 @@ export default function SmartRecommendations() {
             key={product.id}
             whileHover={{ y: -5 }}
             transition={{ type: 'spring', stiffness: 300 }}
-            className="group relative rounded-lg overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-300"
+            className="group relative rounded-lg overflow-hidden bg-white shadow-md hover:shadow-xl transition-all duration-300 h-full flex flex-col"
             onMouseEnter={() => handleProductHover(product.id)}
             onMouseLeave={() => handleProductHover(null)}
           >
-            <Link 
+            <Link
               href={`/products/${product.id}`}
-              className="block"
+              className="block h-full flex flex-col"
               onClick={() => handleProductClick(product.id)}
             >
-              <div className="relative w-full pt-[100%] overflow-hidden bg-gray-100">
+              <div className="relative w-full pt-[100%] overflow-hidden bg-gray-100 flex-shrink-0">
                 {product.imageUrl ? (
                   <Image
                     src={product.imageUrl}
@@ -152,6 +155,13 @@ export default function SmartRecommendations() {
                 {product.isFeatured && (
                   <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
                     Hot
+                  </div>
+                )}
+
+                {/* Stock badge */}
+                {product.stock < 10 && product.stock > 0 && (
+                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">
+                    Sắp hết
                   </div>
                 )}
                 
@@ -180,10 +190,10 @@ export default function SmartRecommendations() {
                 </div>
               </div>
               
-              <div className="p-4">
-                <h3 className="font-medium text-gray-900 truncate mb-1">{product.name}</h3>
-                <p className="text-gray-500 text-sm truncate">{product.category.name}</p>
-                <div className="mt-2 flex items-center justify-between">
+              <div className="p-4 flex-grow flex flex-col">
+                <h3 className="font-medium text-gray-900 line-clamp-2 min-h-[3rem] mb-1">{product.name}</h3>
+                <p className="text-gray-500 text-sm line-clamp-1">{product.category.name}</p>
+                <div className="mt-auto flex items-center justify-between">
                   <p className="text-primary-600 font-bold">
                     {new Intl.NumberFormat('vi-VN', {
                       style: 'currency',

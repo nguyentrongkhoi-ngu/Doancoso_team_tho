@@ -28,14 +28,12 @@ src/
 │   │   └── page.tsx            # Dashboard admin
 │   └── api/
 │       ├── admin/
-│       │   ├── chat-sessions/  # API quản lý phiên chat
-│       │   └── chat-statistics/ # API thống kê chat
+│       │   └── chat-sessions/  # API quản lý phiên chat
 │       └── chat/               # API xử lý tin nhắn chat
 ├── components/
 │   ├── admin/
 │   │   ├── AdminLayout.tsx     # Layout cho trang admin
-│   │   ├── ChatNotifications.tsx # Thông báo chat mới
-│   │   └── ChatStatistics.tsx  # Hiển thị thống kê chat
+│   │   └── ChatNotifications.tsx # Thông báo chat mới
 │   └── ChatBox/
 │       └── ChatBox.tsx         # Component chatbox
 ├── hooks/
@@ -78,7 +76,6 @@ npm run dev
 3. Xem danh sách phiên trò chuyện và lọc theo trạng thái
 4. Nhấp vào một phiên để xem lịch sử trò chuyện
 5. Thay đổi trạng thái phiên (đóng/mở lại) khi cần thiết
-6. Xem thống kê về hoạt động trò chuyện
 
 ## API Endpoints
 
@@ -91,13 +88,44 @@ npm run dev
 - `GET /api/admin/chat-sessions`: Lấy danh sách phiên chat
 - `GET /api/admin/chat-sessions/:id`: Lấy chi tiết phiên chat và lịch sử tin nhắn
 - `PATCH /api/admin/chat-sessions/:id`: Cập nhật trạng thái phiên chat
-- `GET /api/admin/chat-statistics`: Lấy thống kê về hoạt động trò chuyện
+
+## Cấu hình VNPay Sandbox
+
+Hệ thống đã được cấu hình để sử dụng VNPay Sandbox cho thanh toán test:
+
+### Thông tin Merchant
+- **Terminal ID (TMN Code):** 1BB9SZY8
+- **Secret Key:** SCZQJGDU1L7JSWQCNGF8Q0AMZBFPJ3VK
+- **Payment URL:** https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+- **Merchant Portal:** https://sandbox.vnpayment.vn/merchantv2/
+- **Test Login:** https://sandbox.vnpayment.vn/vnpaygw-sit-testing/user/login
+
+### Environment Variables
+Thêm các biến môi trường sau vào file `.env`:
+
+```env
+# VNPay Sandbox Configuration
+VNPAY_SANDBOX_TMN_CODE=1BB9SZY8
+VNPAY_SANDBOX_HASH_SECRET=SCZQJGDU1L7JSWQCNGF8Q0AMZBFPJ3VK
+VNPAY_RETURN_URL=http://localhost:3000/payment/result
+VNPAY_IPN_URL=http://localhost:3000/api/vnpay/vnpay-ipn
+```
+
+### Test VNPay Integration
+Truy cập `/admin/vnpay-test` để test cấu hình và tạo thanh toán thử nghiệm.
+
+### VNPay API Endpoints
+- `POST /api/vnpay/create-payment-url`: Tạo URL thanh toán
+- `GET /api/vnpay/vnpay-return`: Xử lý kết quả trả về từ VNPay
+- `POST /api/vnpay/vnpay-ipn`: Xử lý thông báo thanh toán (IPN)
+- `GET /api/vnpay/test-config`: Test cấu hình VNPay
 
 ## Lưu ý
 
 - Hiện tại, hệ thống sử dụng bộ nhớ trong (in-memory) để lưu trữ dữ liệu. Trong môi trường production, nên sử dụng cơ sở dữ liệu để lưu trữ dữ liệu lâu dài.
 - Chatbox hiện đang sử dụng các câu trả lời cố định. Để tăng tính tương tác, có thể tích hợp với các dịch vụ AI như OpenAI hoặc Google AI.
+- VNPay hiện đang sử dụng môi trường Sandbox. Để chuyển sang Production, cần cập nhật thông tin merchant và URL tương ứng.
 
 ## Tài liệu chi tiết
 
-Để biết thêm chi tiết về cách sử dụng hệ thống quản lý trò chuyện, vui lòng tham khảo [Hướng dẫn sử dụng hệ thống quản lý trò chuyện](./src/docs/CHAT-MANAGEMENT-GUIDE.md). 
+Để biết thêm chi tiết về cách sử dụng hệ thống quản lý trò chuyện, vui lòng tham khảo [Hướng dẫn sử dụng hệ thống quản lý trò chuyện](./src/docs/CHAT-MANAGEMENT-GUIDE.md).

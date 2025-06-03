@@ -94,70 +94,42 @@ const useSearch = ({
 
   // Đồng bộ trạng thái với URL khi tham số URL thay đổi
   useEffect(() => {
-    // Chỉ đồng bộ khi lần đầu render hoặc khi URL thay đổi từ bên ngoài (không phải do người dùng nhập)
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      return; // Thoát sớm nếu là lần render đầu tiên
-    } 
-    
+      // Khởi tạo từ URL params lần đầu
+      const currentQuery = searchParams.get('q') || '';
+      if (currentQuery !== searchTerm) {
+        setSearchTermState(currentQuery);
+        lastManualSearchTermRef.current = currentQuery;
+      }
+      return;
+    }
+
+    // Không đồng bộ khi người dùng đang nhập
     if (isUserTyping) {
-      // Nếu người dùng đang nhập, bỏ qua đồng bộ từ URL
       return;
     }
 
     const currentQuery = searchParams.get('q') || '';
-    
-    // Đánh dấu đây là thay đổi từ URL
-    isURLChangeRef.current = true;
-    
-    try {
-      // Chỉ cập nhật khi thực sự có thay đổi và giá trị hiện tại không phải từ người dùng thao tác
-      if (currentQuery !== searchTerm && 
-          currentQuery !== lastManualSearchTermRef.current &&
-          !isUserTyping) {
-            
-        // Nên có một độ trễ nhỏ để tránh xung đột với input người dùng đang nhập
-        setTimeout(() => {
-          if (!isUserTyping && isMounted.current) {
-            setSearchTermState(currentQuery);
-            
-            // Nếu URL đã thay đổi, cập nhật lại giá trị lưu trữ cuối cùng
-            // Điều này giúp tránh trạng thái không nhất quán
-            lastManualSearchTermRef.current = currentQuery;
-          }
-        }, 100);
-      }
-      
-      // Đồng bộ bộ lọc từ URL nếu không đang nhập liệu
-      if (!isUserTyping) {
-        const urlFilters = {
-          category: searchParams.get('category') || undefined,
-          minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice') || '0') : undefined,
-          maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice') || '0') : undefined,
-          sort: searchParams.get('sort') || 'relevance',
-          inStock: searchParams.get('inStock') === 'true' || undefined,
-          rating: searchParams.get('rating') ? parseInt(searchParams.get('rating') || '0') : undefined,
-        };
-        
-        // Sử dụng hàm cập nhật state để tránh race conditions
-        setFilters(prevFilters => {
-          // Chỉ cập nhật nếu có sự thay đổi
-          if (JSON.stringify(urlFilters) !== JSON.stringify(prevFilters)) {
-            return urlFilters;
-          }
-          return prevFilters;
-        });
-      }
-    } finally {
-      // Reset cờ đánh dấu sau một khoảng thời gian dài hơn
-      // Điều này giúp tránh các vấn đề về timing
-      setTimeout(() => {
-        if (isMounted.current) {
-          isURLChangeRef.current = false;
-        }
-      }, 150);
+
+    // Chỉ cập nhật khi URL thực sự thay đổi và khác với giá trị hiện tại
+    if (currentQuery !== searchTerm) {
+      setSearchTermState(currentQuery);
+      lastManualSearchTermRef.current = currentQuery;
     }
-  }, [searchParams, searchTerm, isUserTyping, setSearchTermState]);
+
+    // Đồng bộ bộ lọc từ URL
+    const urlFilters = {
+      category: searchParams.get('category') || undefined,
+      minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice') || '0') : undefined,
+      maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice') || '0') : undefined,
+      sort: searchParams.get('sort') || 'relevance',
+      inStock: searchParams.get('inStock') === 'true' || undefined,
+      rating: searchParams.get('rating') ? parseInt(searchParams.get('rating') || '0') : undefined,
+    };
+
+    setFilters(urlFilters);
+  }, [searchParams, isUserTyping]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -175,27 +147,16 @@ const useSearch = ({
     }
   }, [saveHistory]);
 
-  // Hàm set search term với định danh type để tránh lỗi khi re-render
+  // Hàm set search term
   const setSearchTerm = useCallback((term: string) => {
-    // Nếu đang xảy ra thay đổi từ URL, bỏ qua việc cập nhật này
-    if (isURLChangeRef.current) {
-      return;
-    }
-    
     if (term !== searchTerm) {
-      // Lưu lại giá trị searchTerm được đặt theo cách thủ công
       lastManualSearchTermRef.current = term;
       setSearchTermState(term);
     }
-  }, [searchTerm, setSearchTermState]);
+  }, [searchTerm]);
 
-  // Fetch suggestions với debounce để tránh gọi API quá nhiều
+  // Fetch suggestions với debounce
   useEffect(() => {
-    // Nếu đây là thay đổi từ URL, không cần fetch suggestions
-    if (isURLChangeRef.current) {
-      return;
-    }
-    
     if (!searchTerm || searchTerm.trim().length < 2) {
       setSuggestions([]);
       return;
@@ -203,7 +164,7 @@ const useSearch = ({
 
     const fetchSuggestions = async () => {
       const cacheKey = searchTerm.toLowerCase().trim();
-      
+
       // Kiểm tra cache
       if (suggestionsCache.has(cacheKey)) {
         const cachedData = suggestionsCache.get(cacheKey)!;
@@ -211,32 +172,30 @@ const useSearch = ({
           setSuggestions(cachedData.data);
           return;
         } else {
-          // Cache hết hạn, xóa
           suggestionsCache.delete(cacheKey);
         }
       }
-      
+
       setIsLoadingSuggestions(true);
       try {
         const response = await fetch(`/api/products/suggestions?q=${encodeURIComponent(searchTerm)}`, {
-          signal: AbortSignal.timeout(3000) // 3 second timeout
+          signal: AbortSignal.timeout(3000)
         });
-        
+
         if (!isMounted.current) return;
-        
+
         if (!response.ok) {
           setSuggestions([]);
           return;
         }
 
         const data = await response.json();
-        
+
         if (!isMounted.current) return;
-        
+
         if (data.suggestions && Array.isArray(data.suggestions)) {
           setSuggestions(data.suggestions);
-          
-          // Lưu vào cache
+
           suggestionsCache.set(cacheKey, {
             data: data.suggestions,
             timestamp: Date.now()
@@ -244,7 +203,6 @@ const useSearch = ({
         }
       } catch (error) {
         if (!isMounted.current) return;
-        
         console.error('Error fetching suggestions:', error);
         setSuggestions([]);
       } finally {
@@ -254,11 +212,11 @@ const useSearch = ({
       }
     };
 
-    // Debounce fetch để tránh gọi API liên tục khi người dùng đang nhập
+    // Debounce fetch
     if (suggestionDebounceRef.current) {
       clearTimeout(suggestionDebounceRef.current);
     }
-    
+
     suggestionDebounceRef.current = setTimeout(() => {
       if (isMounted.current) {
         fetchSuggestions();
@@ -319,57 +277,46 @@ const useSearch = ({
     resetFilters();
   }, [resetFilters]);
 
-  // Thực hiện tìm kiếm có debounce để tránh tạo nhiều URL updates
+  // Thực hiện tìm kiếm
   const executeSearch = useCallback((term?: string) => {
     const searchValue = term !== undefined ? term : searchTerm;
-    
-    // Đảm bảo giá trị tìm kiếm hợp lệ trước khi lưu
+
+    // Lưu vào lịch sử tìm kiếm
     if (searchValue && searchValue.trim() !== '') {
       saveSearch(searchValue.trim());
     }
-    
-    // Đánh dấu đang trong quá trình tìm kiếm
+
     setIsSearching(true);
-    
-    // Clear any existing debounce
+    setIsUserTyping(false);
+    lastManualSearchTermRef.current = searchValue;
+
+    // Clear existing timeout
     if (urlUpdateDebounceRef.current) {
       clearTimeout(urlUpdateDebounceRef.current);
     }
-    
-    // Đảm bảo không đang nhập liệu
-    setIsUserTyping(false);
-    
-    // Lưu giá trị search term cuối cùng được đặt theo cách thủ công
-    lastManualSearchTermRef.current = searchValue;
-    
-    // Debounce URL updates
-    urlUpdateDebounceRef.current = setTimeout(() => {
-      if (!isMounted.current) return;
-      
-      // Build URL params
-      const params = new URLSearchParams();
-      if (searchValue && searchValue.trim() !== '') {
-        params.set('q', searchValue.trim());
+
+    // Build URL params
+    const params = new URLSearchParams();
+    if (searchValue && searchValue.trim() !== '') {
+      params.set('q', searchValue.trim());
+    }
+
+    // Add filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== false) {
+        params.set(key, String(value));
       }
-      
-      // Add all active filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== '' && value !== false) {
-          params.set(key, String(value));
-        }
-      });
-      
-      // Chuyển hướng đến trang tìm kiếm
-      router.push(`/search?${params.toString()}`);
-      
-      // Đánh dấu kết thúc quá trình tìm kiếm sau khi chuyển hướng
-      // và delay dài hơn để đảm bảo trang đã load xong
-      setTimeout(() => {
-        if (isMounted.current) {
-          setIsSearching(false);
-        }
-      }, 300);
-    }, URL_UPDATE_DEBOUNCE_TIME);
+    });
+
+    // Navigate to search page
+    router.push(`/search?${params.toString()}`);
+
+    // Reset searching state
+    setTimeout(() => {
+      if (isMounted.current) {
+        setIsSearching(false);
+      }
+    }, 300);
   }, [searchTerm, filters, saveSearch, router]);
 
   return {

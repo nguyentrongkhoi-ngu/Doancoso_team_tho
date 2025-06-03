@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 
 interface AccountSettingsSectionProps {
@@ -9,13 +9,21 @@ interface AccountSettingsSectionProps {
 
 export default function AccountSettingsSection({ onError }: AccountSettingsSectionProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [currentOrigin, setCurrentOrigin] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [notifications, setNotifications] = useState({
     orderUpdates: true,
     promotions: false,
     productAlerts: true
   });
-  
+
+  // Lấy current origin để sử dụng trong signOut
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentOrigin(window.location.origin);
+    }
+  }, []);
+
   const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setNotifications({
@@ -55,8 +63,9 @@ export default function AccountSettingsSection({ onError }: AccountSettingsSecti
     }
   };
   
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' });
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
+    window.location.href = currentOrigin || window.location.origin;
   };
   
   return (

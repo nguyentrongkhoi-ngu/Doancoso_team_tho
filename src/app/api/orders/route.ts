@@ -3,6 +3,16 @@ import { getServerSession } from "next-auth/next";
 import { prisma } from "@/db";
 import { authOptions } from "@/lib/auth";
 
+// Helper function để so sánh ngày mà không quan tâm đến giờ
+function isCouponDateValid(startDate: Date, endDate: Date): boolean {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  return today >= start && today <= end;
+}
+
 // Get user's orders
 export async function GET(req: NextRequest) {
   try {
@@ -82,18 +92,24 @@ export async function POST(req: NextRequest) {
     let discountAmount = 0;
     
     if (coupon && coupon.code) {
-      appliedCouponCode = coupon.code;
+      appliedCouponCode = coupon.code.trim().toUpperCase();
       discountAmount = coupon.discountValue || 0;
       
       // Verify the coupon again to prevent tampering
-      const couponRecord = await prisma.coupon.findUnique({
+      const couponRecord = await prisma.coupon.findFirst({
         where: {
           code: appliedCouponCode,
           isActive: true,
-          startDate: { lte: new Date() },
-          endDate: { gte: new Date() },
         }
       });
+
+      // Kiểm tra ngày tháng
+      if (couponRecord && !isCouponDateValid(couponRecord.startDate, couponRecord.endDate)) {
+        return NextResponse.json(
+          { error: "Mã giảm giá không hợp lệ hoặc đã hết hạn" },
+          { status: 400 }
+        );
+      }
       
       if (!couponRecord) {
         return NextResponse.json(
@@ -204,6 +220,15 @@ export async function POST(req: NextRequest) {
             },
           },
         });
+        // Ghi lịch sử xuất kho khi bán hàng
+        await tx.inventoryHistory.create({
+          data: {
+            productId: item.productId,
+            change: -item.quantity,
+            reason: 'Bán hàng',
+            userId: session.user.id,
+          },
+        });
       }
       
       // 4. Update coupon usage count if coupon was applied
@@ -258,4 +283,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

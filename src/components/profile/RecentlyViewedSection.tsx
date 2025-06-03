@@ -237,6 +237,14 @@ export default function RecentlyViewedSection({ onError }: RecentlyViewedSection
                   </svg>
                 </Link>
               )}
+
+              {/* Stock badge */}
+              {item.product.stock < 10 && item.product.stock > 0 && (
+                <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                  Sắp hết
+                </div>
+              )}
+
               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs px-2 py-1">
                 {formatTimeAgo(item.lastViewed)}
                 {item.viewCount > 1 && (

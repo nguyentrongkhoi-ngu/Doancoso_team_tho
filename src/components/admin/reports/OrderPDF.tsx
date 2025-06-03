@@ -159,19 +159,19 @@ const OrderPDF = ({ order }: { order: Order }) => {
         <View style={styles.orderInfo}>
           <View style={styles.orderInfoRow}>
             <Text style={styles.label}>Mã đơn hàng:</Text>
-            <Text style={styles.value}>{order.id}</Text>
+            <Text style={styles.value}>{order.id || 'N/A'}</Text>
           </View>
           <View style={styles.orderInfoRow}>
             <Text style={styles.label}>Trạng thái:</Text>
-            <Text style={styles.value}>{getStatusText(order.status)}</Text>
+            <Text style={styles.value}>{getStatusText(order.status || 'PENDING')}</Text>
           </View>
           <View style={styles.orderInfoRow}>
             <Text style={styles.label}>Ngày đặt:</Text>
-            <Text style={styles.value}>{formatDate(order.createdAt)}</Text>
+            <Text style={styles.value}>{order.createdAt ? formatDate(order.createdAt) : 'N/A'}</Text>
           </View>
           <View style={styles.orderInfoRow}>
             <Text style={styles.label}>Cập nhật:</Text>
-            <Text style={styles.value}>{formatDate(order.updatedAt)}</Text>
+            <Text style={styles.value}>{order.updatedAt ? formatDate(order.updatedAt) : 'N/A'}</Text>
           </View>
         </View>
         
@@ -179,11 +179,11 @@ const OrderPDF = ({ order }: { order: Order }) => {
           <Text style={[styles.label, { marginBottom: 5 }]}>Thông tin khách hàng:</Text>
           <View style={styles.orderInfoRow}>
             <Text style={styles.label}>Họ tên:</Text>
-            <Text style={styles.value}>{order.customerName}</Text>
+            <Text style={styles.value}>{order.customerName || 'N/A'}</Text>
           </View>
           <View style={styles.orderInfoRow}>
             <Text style={styles.label}>Email:</Text>
-            <Text style={styles.value}>{order.customerEmail}</Text>
+            <Text style={styles.value}>{order.customerEmail || 'N/A'}</Text>
           </View>
         </View>
         
@@ -206,29 +206,29 @@ const OrderPDF = ({ order }: { order: Order }) => {
           </View>
           
           {/* Table Body */}
-          {order.items.map((item, i) => (
+          {order.items && order.items.length > 0 && order.items.map((item, i) => (
             <View key={i} style={styles.tableRow}>
               <View style={[styles.tableCol, styles.col1]}>
-                <Text style={styles.tableCell}>{item.productName}</Text>
+                <Text style={styles.tableCell}>{item.productName || 'N/A'}</Text>
                 <Text style={[styles.tableCell, { fontSize: 8, color: 'grey' }]}>
-                  Mã: {item.productId}
+                  Mã: {item.productId || 'N/A'}
                 </Text>
               </View>
               <View style={[styles.tableCol, styles.col2]}>
-                <Text style={styles.tableCell}>{formatPrice(item.price)}</Text>
+                <Text style={styles.tableCell}>{formatPrice(item.price || 0)}</Text>
               </View>
               <View style={[styles.tableCol, styles.col3]}>
-                <Text style={styles.tableCell}>{item.quantity}</Text>
+                <Text style={styles.tableCell}>{item.quantity || 0}</Text>
               </View>
               <View style={[styles.tableCol, styles.col4]}>
-                <Text style={styles.tableCell}>{formatPrice(item.subtotal)}</Text>
+                <Text style={styles.tableCell}>{formatPrice(item.subtotal || 0)}</Text>
               </View>
             </View>
           ))}
         </View>
         
         <View>
-          <Text style={styles.total}>Tổng giá trị: {formatPrice(order.total)}</Text>
+          <Text style={styles.total}>Tổng giá trị: {formatPrice(order.total || 0)}</Text>
         </View>
         
         <View style={styles.footer}>

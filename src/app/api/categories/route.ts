@@ -29,81 +29,95 @@ const categorySchema = z.object({
 export async function GET(req: NextRequest) {
   console.log('API GET /api/categories đang được gọi');
   
-  const { searchParams } = new URL(req.url);
-  const includeStructure = searchParams.get('includeStructure') === 'true';
-  const featured = searchParams.get('featured') === 'true';
-  
-  console.log('Include structure:', includeStructure);
-  console.log('Featured only:', featured);
-  
   try {
-    let categories;
+    // Kiểm tra xem có yêu cầu bao gồm cấu trúc không
+    const { searchParams } = new URL(req.url);
+    const includeStructure = searchParams.get('includeStructure') === 'true';
+    const featured = searchParams.get('featured') === 'true';
     
-    if (includeStructure) {
-      // Lấy danh mục với cấu trúc đầy đủ
-      categories = await prisma.category.findMany({
-        where: featured ? {
-          isFeatured: true
-        } : undefined,
-        orderBy: {
-          sortOrder: "asc",
-        },
-        include: {
-          parentCategory: {
-            select: {
-              id: true,
-              name: true,
-            }
+    console.log('Include structure:', includeStructure);
+    console.log('Featured only:', featured);
+    
+    try {
+      let categories;
+      
+      if (includeStructure) {
+        // Lấy danh mục với cấu trúc đầy đủ
+        categories = await prisma.category.findMany({
+          where: featured ? {
+            isFeatured: true
+          } : undefined,
+          orderBy: {
+            sortOrder: "asc",
           },
-          _count: {
-            select: {
-              products: true,
-              subCategories: true,
-            }
-          }
-        },
-      });
-    } else {
-      // Lấy danh mục đơn giản, nhưng vẫn bao gồm số lượng sản phẩm cho danh mục nổi bật
-      categories = await prisma.category.findMany({
-        where: featured ? {
-          isFeatured: true
-        } : undefined,
-        orderBy: {
-          sortOrder: "asc",
-        },
-        ...(featured ? {
           include: {
+            parentCategory: {
+              select: {
+                id: true,
+                name: true,
+              }
+            },
             _count: {
               select: {
-                products: true
+                products: true,
+                subCategories: true,
               }
             }
-          }
-        } : {})
-      });
+          },
+        });
+      } else {
+        // Lấy danh mục đơn giản, nhưng vẫn bao gồm số lượng sản phẩm cho danh mục nổi bật
+        categories = await prisma.category.findMany({
+          where: featured ? {
+            isFeatured: true
+          } : undefined,
+          orderBy: {
+            sortOrder: "asc",
+          },
+          ...(featured ? {
+            include: {
+              _count: {
+                select: {
+                  products: true
+                }
+              }
+            }
+          } : {})
+        });
+        
+        // Thêm productCount vào mỗi danh mục nếu là featured
+        if (featured) {
+          categories = categories.map(category => ({
+            ...category,
+            productCount: category._count?.products || 0
+          }));
+        }
+      }
       
-      // Thêm productCount vào mỗi danh mục nếu là featured
+      console.log('Danh sách categories từ DB:', categories.length);
+      
+      // Return categories as an array for consistent usage across the app
+      return NextResponse.json(categories);
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      // Return mock categories as fallback
       if (featured) {
-        // Định nghĩa kiểu dữ liệu tạm thời để truy cập _count một cách an toàn
-        type CategoryWithCount = typeof categories[number] & { _count?: { products: number } };
-
-        categories = (categories as CategoryWithCount[]).map(category => ({
-          ...category,
-          productCount: category._count?.products || 0
+        // Trả về 3-4 danh mục mẫu nổi bật nếu lọc theo featured với hình ảnh và mô tả
+        const featuredMockCategories = mockCategories.slice(0, 4).map(cat => ({
+          ...cat,
+          imageUrl: `https://via.placeholder.com/800x600?text=${encodeURIComponent(cat.name)}`,
+          description: `Bộ sưu tập ${cat.name} mới nhất và tốt nhất`,
+          productCount: Math.floor(Math.random() * 100) + 20
         }));
+        return NextResponse.json(featuredMockCategories);
+      } else {
+        return NextResponse.json(mockCategories);
       }
     }
-    
-    console.log('Danh sách categories từ DB:', categories.length);
-    
-    // Return categories as an array for consistent usage across the app
-    console.log('Returning categories from API:', categories);
-    return NextResponse.json(categories);
-  } catch (dbError) {
-    console.error("Database error:", dbError);
+  } catch (error) {
+    console.error("Lỗi khi lấy danh mục:", error);
     // Return mock categories as fallback
-    if (featured) {
+    if (searchParams.get('featured') === 'true') {
       // Trả về 3-4 danh mục mẫu nổi bật nếu lọc theo featured với hình ảnh và mô tả
       const featuredMockCategories = mockCategories.slice(0, 4).map(cat => ({
         ...cat,
@@ -111,9 +125,9 @@ export async function GET(req: NextRequest) {
         description: `Bộ sưu tập ${cat.name} mới nhất và tốt nhất`,
         productCount: Math.floor(Math.random() * 100) + 20
       }));
-      return NextResponse.json(featuredMockCategories);
+      return NextResponse.json(featuredMockCategories, { status: 200 });
     } else {
-      return NextResponse.json(mockCategories);
+      return NextResponse.json(mockCategories, { status: 200 });
     }
   }
 }

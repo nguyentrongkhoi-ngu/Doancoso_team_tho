@@ -1,7 +1,7 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcrypt";
 import { prisma } from "@/db";
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, getServerSession } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -59,6 +59,18 @@ export const authOptions: NextAuthOptions = {
         };
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Nếu url bắt đầu bằng "/" thì sử dụng baseUrl hiện tại
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      // Nếu url cùng origin với baseUrl thì cho phép
+      else if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      // Mặc định trả về baseUrl
+      return baseUrl;
     }
   },
   pages: {
@@ -85,4 +97,7 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
-}; 
+};
+
+// Export auth function để sử dụng trong API routes
+export const auth = () => getServerSession(authOptions);

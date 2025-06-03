@@ -4,7 +4,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import ChatStatistics from '@/components/admin/ChatStatistics';
+
 
 type Order = {
   id: string;
@@ -92,10 +92,7 @@ export default function AdminDashboardPage() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Bảng điều khiển</h1>
         
-        {/* Chat Statistics */}
-        <div className="mb-8">
-          <ChatStatistics />
-        </div>
+
         
         <div>
           {/* Stats Grid */}

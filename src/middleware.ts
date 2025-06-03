@@ -35,18 +35,31 @@ if (typeof window === 'undefined') {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
+  // Đảm bảo UTF-8 encoding cho tất cả API requests
+  if (pathname.startsWith('/api/')) {
+    const response = NextResponse.next();
+    response.headers.set('Content-Type', 'application/json; charset=utf-8');
+    response.headers.set('Accept-Charset', 'utf-8');
+
+    // Nếu là API route, không cần kiểm tra auth cho một số endpoints
+    if (pathname.startsWith('/api/products') && request.method === 'GET') {
+      return response;
+    }
+  }
+
   // Cho phép các public paths mà không cần xử lý thêm
   if (publicPaths.some(path => pathname.startsWith(path)) && !protectedPaths.some(path => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  // Chỉ log những route API cần thiết để tránh log quá nhiều
-  const shouldLogDetailed = API_ROUTES_TO_LOG.some(route => pathname.startsWith(route));
-  
+  // Only log API routes in development environment
+  const shouldLogDetailed = process.env.NODE_ENV === 'development' &&
+    API_ROUTES_TO_LOG.some(route => pathname.startsWith(route));
+
   if (shouldLogDetailed) {
     console.log(`[${new Date().toISOString()}] ${request.method} ${pathname}`);
-    
+
     // Log các headers quan trọng
     try {
       const headers = Object.fromEntries(request.headers);
@@ -56,14 +69,14 @@ export async function middleware(request: NextRequest) {
         'user-agent': headers['user-agent']?.substring(0, 100),
         'authorization': headers['authorization'] ? '[redacted]' : undefined
       }));
-      
+
       // Log request body nếu là POST, PUT, PATCH
       if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
         try {
           // Clone request để không ảnh hưởng đến việc xử lý sau này
           const clonedRequest = request.clone();
           const contentType = request.headers.get('content-type') || '';
-          
+
           if (contentType.includes('application/json')) {
             const body = await clonedRequest.json();
             console.log('Request body:', JSON.stringify(body));
@@ -72,7 +85,7 @@ export async function middleware(request: NextRequest) {
           console.log('Unable to parse request body');
         }
       }
-      
+
       // Log các query params
       if (request.nextUrl.search) {
         console.log('Query params:', request.nextUrl.search);
@@ -128,4 +141,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
-}; 
+};

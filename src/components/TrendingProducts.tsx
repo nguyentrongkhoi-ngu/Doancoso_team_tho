@@ -33,23 +33,23 @@ function TrendingProducts() {
   const [cartMessage, setCartMessage] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Refs for the card hover effect
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  
+
   const { data: session, status } = useSession();
   const { addToCart } = useCart();
-  
+
   const fetchFeaturedProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Thêm timestamp để tránh cache
       const timestamp = Date.now();
       console.log(`TrendingProducts: Đang tải sản phẩm nổi bật (timestamp: ${timestamp})`);
-      
-      const response = await axios.get(`/api/products?featured=true&_ts=${timestamp}`, {
+
+      const response = await axios.get(`/api/products?featured=true&limit=1000&_ts=${timestamp}`, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -57,18 +57,18 @@ function TrendingProducts() {
         },
         timeout: 10000 // 10 giây timeout
       });
-      
+
       // Đảm bảo dữ liệu isFeatured luôn là boolean
       const featuredProducts = response.data.map((product: any) => ({
         ...product,
         isFeatured: Boolean(product.isFeatured)
       }));
-      
+
       console.log(`TrendingProducts: Đã tải ${featuredProducts.length} sản phẩm nổi bật`);
       featuredProducts.forEach((product: any) => {
         console.log(`- ${product.name} (ID: ${product.id}, Nổi bật: ${product.isFeatured})`);
       });
-      
+
       setProducts(featuredProducts);
       setLoading(false);
     } catch (err: any) {
@@ -81,10 +81,10 @@ function TrendingProducts() {
   useEffect(() => {
     // Tải sản phẩm nổi bật khi component mount
     fetchFeaturedProducts();
-    
+
     // Thiết lập interval để tải lại dữ liệu mỗi 10 giây
     const intervalId = setInterval(fetchFeaturedProducts, 10000);
-    
+
     // Thêm sự kiện để tải lại dữ liệu khi tab trở nên visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -92,9 +92,9 @@ function TrendingProducts() {
         fetchFeaturedProducts();
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Cleanup khi component unmount
     return () => {
       clearInterval(intervalId);
@@ -111,9 +111,9 @@ function TrendingProducts() {
   // Sắp xếp sản phẩm dựa trên lựa chọn
   useEffect(() => {
     if (products.length === 0) return;
-    
+
     let sortedProducts = [...products];
-    
+
     switch (sortOption) {
       case 'price_asc':
         sortedProducts.sort((a, b) => {
@@ -138,62 +138,62 @@ function TrendingProducts() {
         // Giữ nguyên thứ tự
         break;
     }
-    
+
     setDisplayedProducts(sortedProducts);
   }, [products, sortOption]);
-  
+
   // Cập nhật displayedProducts khi products thay đổi
   useEffect(() => {
     setDisplayedProducts(products);
   }, [products]);
-  
+
   // Card 3D tilt effect
   useEffect(() => {
     if (!isMounted) return;
-    
+
     const handleMouseMove = (e: MouseEvent, index: number) => {
       const card = cardRefs.current[index];
       if (!card) return;
-      
+
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left; // vị trí chuột X
       const y = e.clientY - rect.top;  // vị trí chuột Y
-      
+
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
-      
+
       const rotateX = (y - centerY) / 20;  // Xoay theo trục X
       const rotateY = (centerX - x) / 20;  // Xoay theo trục Y
-      
+
       card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.03, 1.03, 1.03)`;
     };
-    
+
     const handleMouseLeave = (index: number) => {
       const card = cardRefs.current[index];
       if (!card) return;
-      
+
       card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
     };
-    
+
     // Add event listeners
     cardRefs.current.forEach((card, index) => {
       if (!card) return;
-      
+
       card.addEventListener('mousemove', (e) => handleMouseMove(e, index));
       card.addEventListener('mouseleave', () => handleMouseLeave(index));
     });
-    
+
     // Cleanup
     return () => {
       cardRefs.current.forEach((card, index) => {
         if (!card) return;
-        
+
         card.removeEventListener('mousemove', (e) => handleMouseMove(e as MouseEvent, index));
         card.removeEventListener('mouseleave', () => handleMouseLeave(index));
       });
     };
   }, [isMounted, displayedProducts.length]);
-  
+
   const handleFavoriteToggle = useCallback(async (productId: string) => {
     // Kiểm tra người dùng đã đăng nhập chưa
     if (status !== 'authenticated' || !session) {
@@ -212,10 +212,10 @@ function TrendingProducts() {
       const currentlyFavorited = product.isFeatured;
 
       // Cập nhật UI trước để trải nghiệm người dùng tốt hơn
-      setProducts(prevProducts => 
-        prevProducts.map(product => 
-          product.id === productId 
-            ? { ...product, isFeatured: !product.isFeatured } 
+      setProducts(prevProducts =>
+        prevProducts.map(product =>
+          product.id === productId
+            ? { ...product, isFeatured: !product.isFeatured }
             : product
         )
       );
@@ -230,7 +230,7 @@ function TrendingProducts() {
           const data = await response.json();
           throw new Error(data.error || 'Không thể xóa khỏi danh sách yêu thích');
         }
-        
+
         toast.success('Đã xóa sản phẩm khỏi danh sách yêu thích');
       } else {
         // Thêm vào wishlist
@@ -246,28 +246,28 @@ function TrendingProducts() {
           const data = await response.json();
           throw new Error(data.error || 'Không thể thêm vào danh sách yêu thích');
         }
-        
+
         toast.success('Đã thêm sản phẩm vào danh sách yêu thích');
       }
     } catch (error: any) {
       // Nếu có lỗi, khôi phục lại trạng thái ban đầu
-      setProducts(prevProducts => 
-        prevProducts.map(product => 
-          product.id === productId 
-            ? { ...product, isFeatured: !product.isFeatured } 
+      setProducts(prevProducts =>
+        prevProducts.map(product =>
+          product.id === productId
+            ? { ...product, isFeatured: !product.isFeatured }
             : product
         )
       );
-      
+
       toast.error(error.message || 'Đã xảy ra lỗi khi thao tác với danh sách yêu thích');
       console.error('Lỗi khi thao tác với wishlist:', error);
     }
   }, [router, session, status, products]);
-  
+
   const handleViewProduct = useCallback((productId: string) => {
     router.push(`/products/${productId}`);
   }, [router]);
-  
+
   const handleAddToCart = useCallback(async (product: Product) => {
     // Kiểm tra người dùng đã đăng nhập chưa
     if (status !== 'authenticated' || !session) {
@@ -277,41 +277,41 @@ function TrendingProducts() {
         name: product.name,
         quantity: 1
       }));
-      
+
       // Điều hướng đến trang đăng nhập với tham số redirect
       router.push(`/login?redirectTo=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
-    
+
     // Hiển thị thông báo trước để UX tốt hơn
     setCartMessage(`Đang thêm "${product.name}" vào giỏ hàng...`);
     setShowCart(true);
-    
+
     try {
       // Sử dụng hàm addToCart từ context
       await addToCart(product.id, 1);
-      
+
       // Cập nhật thông báo sau khi thêm thành công
       setCartMessage(`Đã thêm "${product.name}" vào giỏ hàng`);
-      
+
       setTimeout(() => {
         setShowCart(false);
       }, 3000);
     } catch (error) {
       console.error('Lỗi khi thêm vào giỏ hàng:', error);
-      
+
       // Kiểm tra lỗi phiên đăng nhập
-      if ((error as Error).message.includes('đăng nhập') || 
+      if ((error as Error).message.includes('đăng nhập') ||
           (error as Error).message.includes('phiên')) {
         toast.error('Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.');
-        
+
         // Lưu sản phẩm vào localStorage để sau khi đăng nhập có thể thêm lại
         localStorage.setItem('pendingCartItem', JSON.stringify({
           productId: product.id,
           name: product.name,
           quantity: 1
         }));
-        
+
         // Chuyển đến trang đăng nhập
         setTimeout(() => {
           router.push(`/login?redirectTo=${encodeURIComponent(window.location.pathname)}`);
@@ -325,19 +325,19 @@ function TrendingProducts() {
       }
     }
   }, [router, session, status, addToCart]);
-  
+
   const formatPrice = useCallback((price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   }, []);
-  
+
   const calculateDiscountedPrice = useCallback((price: number, discount: number = 0) => {
     if (!discount) return price;
     return price * (1 - discount / 100);
   }, []);
-  
+
   const getSortIcon = (option: SortOption) => {
     if (sortOption !== option) return <ArrowUpDown size={14} />;
-    
+
     switch (option) {
       case 'price_asc':
         return <ArrowUp size={14} />;
@@ -351,16 +351,16 @@ function TrendingProducts() {
   // Hàm để hiển thị thời gian cập nhật
   const formatUpdateTime = useCallback((date: Date | null) => {
     if (!date) return 'Chưa cập nhật';
-    
+
     // Tính thời gian tương đối
     const now = new Date();
     const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (diffSeconds < 10) return 'Vừa cập nhật';
     if (diffSeconds < 60) return `${diffSeconds} giây trước`;
     if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} phút trước`;
     if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} giờ trước`;
-    
+
     // Nếu quá 1 ngày thì hiển thị thời gian chính xác
     return date.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
@@ -377,7 +377,7 @@ function TrendingProducts() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Sản phẩm nổi bật</h2>
-            <button 
+            <button
               onClick={handleRefresh}
               className="text-blue-600 hover:text-blue-800 flex items-center"
             >
@@ -387,7 +387,7 @@ function TrendingProducts() {
               Làm mới
             </button>
           </div>
-          
+
           <div className="flex justify-center items-center py-10">
             <LoadingSpinner size="large" color="blue" />
           </div>
@@ -402,7 +402,7 @@ function TrendingProducts() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Sản phẩm nổi bật</h2>
-            <button 
+            <button
               onClick={handleRefresh}
               className="text-blue-600 hover:text-blue-800 flex items-center"
             >
@@ -412,7 +412,7 @@ function TrendingProducts() {
               Thử lại
             </button>
           </div>
-          
+
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
             <p>{error}</p>
           </div>
@@ -420,13 +420,13 @@ function TrendingProducts() {
       </div>
     );
   }
-  
+
   return (
     <div className="py-10">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Sản phẩm nổi bật</h2>
-          <button 
+          <button
             onClick={handleRefresh}
             className="text-blue-600 hover:text-blue-800 flex items-center"
           >
@@ -436,15 +436,15 @@ function TrendingProducts() {
             Làm mới
           </button>
         </div>
-        
+
         {!loading && !error && products.length === 0 && (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
             <p>Không có sản phẩm nổi bật nào. Vui lòng kiểm tra lại sau.</p>
           </div>
         )}
-        
+
         {!loading && !error && products.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -455,4 +455,4 @@ function TrendingProducts() {
   );
 }
 
-export default memo(TrendingProducts); 
+export default memo(TrendingProducts);

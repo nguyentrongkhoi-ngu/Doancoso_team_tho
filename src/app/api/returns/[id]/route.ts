@@ -164,6 +164,25 @@ export async function PATCH(
         where: { id: returnRequest.orderId },
         data: { status: 'RETURNED' }
       });
+      // Tự động cộng lại kho và ghi lịch sử nhập kho
+      const returnItems = await prisma.returnItem.findMany({
+        where: { returnRequestId: returnId },
+        include: { orderItem: true }
+      });
+      for (const item of returnItems) {
+        await prisma.product.update({
+          where: { id: item.orderItem.productId },
+          data: { stock: { increment: item.quantity } }
+        });
+        await prisma.inventoryHistory.create({
+          data: {
+            productId: item.orderItem.productId,
+            change: item.quantity,
+            reason: 'Hoàn trả',
+            userId: session.user.id,
+          }
+        });
+      }
     }
 
     return NextResponse.json(updatedReturn);
@@ -241,4 +260,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

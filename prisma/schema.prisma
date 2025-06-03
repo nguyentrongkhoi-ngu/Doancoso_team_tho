@@ -8,29 +8,30 @@ datasource db {
 }
 
 model User {
-  id               String          @id @default(cuid())
-  name             String?
-  email            String?         @unique
-  password         String?
-  image            String?
-  role             String          @default("user")
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  emailVerified    DateTime?
-  resetToken       String?         @db.Text
-  resetTokenExpiry DateTime?
-  accounts         Account[]
-  cartItems        CartItem[]
-  orders           Order[]
-  productViews     ProductView[]
-  returnRequests   ReturnRequest[]
-  reviews          Review[]
-  searchQueries    SearchQuery[]
-  sessions         Session[]
-  addresses        UserAddress[]
-  wishlistItems    WishlistItem[]
-  behaviorAnalysis UserBehaviorAnalysis?
+  id                         String                      @id @default(cuid())
+  name                       String?
+  email                      String?                     @unique
+  password                   String?
+  image                      String?
+  role                       String                      @default("user")
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  emailVerified              DateTime?
+  resetToken                 String?                     @db.Text
+  resetTokenExpiry           DateTime?
+  accounts                   Account[]
+  cartItems                  CartItem[]
+  inventoryHistory           InventoryHistory[]
+  orders                     Order[]
+  productViews               ProductView[]
   recommendationInteractions RecommendationInteraction[]
+  returnRequests             ReturnRequest[]
+  reviews                    Review[]
+  searchQueries              SearchQuery[]
+  sessions                   Session[]
+  addresses                  UserAddress[]
+  behaviorAnalysis           UserBehaviorAnalysis?
+  wishlistItems              WishlistItem[]
 }
 
 model Account {
@@ -63,24 +64,26 @@ model Session {
 }
 
 model Product {
-  id           String         @id @default(cuid())
-  name         String         @unique
-  description  String?        @db.Text
-  price        Float
-  stock        Int
-  imageUrl     String?
-  categoryId   String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  isFeatured   Boolean        @default(false)
-  cartItems    CartItem[]
-  orderItems   OrderItem[]
-  category     Category       @relation(fields: [categoryId], references: [id])
-  images       ProductImage[]
-  productViews ProductView[]
-  reviews      Review[]
-  wishlistItems WishlistItem[]
+  id                         String                      @id @default(cuid())
+  name                       String                      @unique
+  description                String?                     @db.Text
+  price                      Float
+  stock                      Int
+  imageUrl                   String?
+  categoryId                 String
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  isFeatured                 Boolean                     @default(false)
+  brand                      String?
+  cartItems                  CartItem[]
+  inventoryHistory           InventoryHistory[]
+  orderItems                 OrderItem[]
+  category                   Category                    @relation(fields: [categoryId], references: [id])
+  images                     ProductImage[]
+  productViews               ProductView[]
   recommendationInteractions RecommendationInteraction[]
+  reviews                    Review[]
+  wishlistItems              WishlistItem[]
 }
 
 model ProductImage {
@@ -139,8 +142,11 @@ model Order {
   invoice         Invoice?
   user            User             @relation(fields: [userId], references: [id])
   items           OrderItem[]
+  payment         Payment?
   returnRequests  ReturnRequest[]
   shippingAddress ShippingAddress?
+
+  @@index([userId])
 }
 
 model ShippingAddress {
@@ -234,8 +240,8 @@ model ReturnItem {
   quantity        Int
   reason          String?       @db.Text
   status          String        @default("PENDING")
-  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
   orderItem       OrderItem     @relation(fields: [orderItemId], references: [id])
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
 
   @@index([returnRequestId])
   @@index([orderItemId])
@@ -275,8 +281,8 @@ model WishlistItem {
   userId    String
   productId String
   addedAt   DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@index([userId])
@@ -284,13 +290,12 @@ model WishlistItem {
 }
 
 model UserAddress {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   fullName    String
   address     String
   city        String
   state       String?
-  ward        String?
   postalCode  String?
   country     String
   phoneNumber String
@@ -318,16 +323,15 @@ model UserBehaviorAnalysis {
   @@index([userId])
 }
 
-// Mới: Bảng lưu trữ tương tác với gợi ý sản phẩm
 model RecommendationInteraction {
   id                 String   @id @default(cuid())
   userId             String
   productId          String
-  recommendationType String    // Loại gợi ý (personalized, ai_personalized, popular, ...)
-  interactionType    String    // Loại tương tác (view, cart, purchase)
+  recommendationType String
+  interactionType    String
   timestamp          DateTime @default(now())
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([productId])
@@ -335,34 +339,60 @@ model RecommendationInteraction {
   @@index([timestamp])
 }
 
-// Thêm mới: Bảng lưu trữ log các sự kiện gợi ý
 model RecommendationLog {
   id                 String   @id @default(cuid())
   userId             String
-  recommendationType String    // Loại gợi ý (personalized, ai_personalized, popular, ...)
-  categoryIds        String?   @db.Text // Danh sách ID danh mục được gợi ý
-  productCount       Int       // Số lượng sản phẩm đã gợi ý
-  timestamp          DateTime  @default(now())
-  metadata           String?   @db.Text // Dữ liệu bổ sung (JSON)
+  recommendationType String
+  categoryIds        String?  @db.Text
+  productCount       Int
+  timestamp          DateTime @default(now())
+  metadata           String?  @db.Text
 
   @@index([userId])
   @@index([recommendationType])
   @@index([timestamp])
 }
 
-// Thêm mới: Bảng theo dõi hiệu suất của các thuật toán gợi ý
 model RecommendationPerformance {
-  id                  String   @id @default(cuid())
-  algorithmType       String   // tensorflow, collaborative, content, matrix, popular, hybrid
-  viewCount           Int      @default(0)
-  cartCount           Int      @default(0)
-  purchaseCount       Int      @default(0)
-  conversionRate      Float    @default(0) // Tỷ lệ chuyển đổi (% mua hàng)
-  startDate           DateTime // Ngày bắt đầu thống kê
-  endDate             DateTime // Ngày kết thúc thống kê
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id             String   @id @default(cuid())
+  algorithmType  String
+  viewCount      Int      @default(0)
+  cartCount      Int      @default(0)
+  purchaseCount  Int      @default(0)
+  conversionRate Float    @default(0)
+  startDate      DateTime
+  endDate        DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([algorithmType])
   @@index([startDate, endDate])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  amount        Float
+  paymentMethod String
+  status        String   @default("PENDING")
+  transactionId String?
+  paymentUrl    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  order         Order    @relation(fields: [orderId], references: [id])
+}
+
+model InventoryHistory {
+  id        String   @id @default(cuid())
+  productId String
+  change    Int
+  reason    String?
+  userId    String?
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([userId])
+  @@index([createdAt])
 }
